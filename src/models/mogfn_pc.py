@@ -1,0 +1,836 @@
+"""
+Multi-Objective GFlowNet (MOGFN) implementation.
+
+Implements MOGFN-PC (Preference-Conditional) from:
+    Jain et al. "Multi-Objective GFlowNets" (ICML 2023)
+
+This module extends BaseGFlowNet to handle multiple objectives through
+preference-conditional policies.
+"""
+
+import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from typing import List, Tuple, Optional, Dict, Union
+import numpy as np
+
+from gflownet import BaseGFlowNet, Trajectory, GFlowNetEnvironment, PolicyNetwork
+
+
+class PreferenceEncoder(nn.Module):
+    """
+    Encodes preference vectors for conditioning.
+    
+    Supports both vanilla encoding and thermometer encoding.
+    """
+    
+    def __init__(self, 
+                num_objectives: int,
+                encoding_type: str = 'vanilla',
+                output_dim: Optional[int] = None):
+        """
+        Args:
+            num_objectives: Number of objectives
+            encoding_type: 'vanilla' or 'thermometer'
+            output_dim: Output dimension (None = same as input)
+        """
+        super().__init__()
+        self.num_objectives = num_objectives
+        self.encoding_type = encoding_type
+        
+        if encoding_type == 'thermometer':
+            # Thermometer encoding: map [0,1] to discretized bins
+            self.num_bins = 10
+            input_dim = num_objectives * self.num_bins
+        else:
+            input_dim = num_objectives
+        
+        if output_dim is not None:
+            self.projection = nn.Linear(input_dim, output_dim)
+        else:
+            self.projection = None
+            output_dim = input_dim
+        
+        self.output_dim = output_dim
+    
+    def forward(self, preference: torch.Tensor) -> torch.Tensor:
+        """
+        Encode preference vector.
+        
+        Args:
+            preference: Preference vector, shape (num_objectives,) or (batch, num_objectives)
+        
+        Returns:
+            encoded: Encoded preference, shape (output_dim,) or (batch, output_dim)
+        """
+        if self.encoding_type == 'thermometer':
+            encoded = self._thermometer_encode(preference)
+        else:
+            encoded = preference
+        
+        if self.projection is not None:
+            encoded = self.projection(encoded)
+        
+        return encoded
+    
+    def _thermometer_encode(self, preference: torch.Tensor) -> torch.Tensor:
+        """Convert preference to thermometer encoding."""
+        # For each objective value in [0,1], create binary vector
+        # e.g., value=0.35 with 10 bins -> [1,1,1,0,0,0,0,0,0,0]
+        batch_shape = preference.shape[:-1]
+        
+        bins = torch.linspace(0, 1, self.num_bins + 1, device=preference.device)[1:]
+        bins = bins.view(*([1] * len(batch_shape)), 1, -1)
+        
+        pref_expanded = preference.unsqueeze(-1)
+        thermometer = (pref_expanded >= bins).float()
+        
+        # Flatten last two dimensions
+        return thermometer.reshape(*batch_shape, -1)
+
+
+class ConditionalPolicyNetwork(nn.Module):
+    """Policy network conditioned on preference vector."""
+    
+    def __init__(self,
+                state_dim: int,
+                preference_dim: int,
+                hidden_dim: int,
+                num_actions: int,
+                num_layers: int = 3,
+                conditioning_type: str = 'concat'):
+        """
+        Args:
+            conditioning_type: 'concat', 'film', or 'hypernet'
+        """
+        super().__init__()
+        
+        self.conditioning_type = conditioning_type
+        
+        if conditioning_type == 'concat':
+            input_dim = state_dim + preference_dim
+            self.network = self._build_mlp(input_dim, hidden_dim, num_actions, num_layers)
+        
+        elif conditioning_type == 'film':
+            # FiLM: Feature-wise Linear Modulation
+            self.state_encoder = self._build_mlp(state_dim, hidden_dim, hidden_dim, num_layers - 1)
+            
+            # FiLM conditioning: generates scale and shift parameters
+            self.film_layer = nn.Linear(preference_dim, 2 * hidden_dim)
+            self.output_layer = nn.Linear(hidden_dim, num_actions)
+        
+        else:
+            raise NotImplementedError(f"Conditioning type {conditioning_type} not implemented")
+    
+    def _build_mlp(self, input_dim, hidden_dim, output_dim, num_layers):
+        """Helper to build MLP."""
+        layers = []
+        layers.append(nn.Linear(input_dim, hidden_dim))
+        layers.append(nn.ReLU())
+        
+        for _ in range(num_layers - 2):
+            layers.append(nn.Linear(hidden_dim, hidden_dim))
+            layers.append(nn.ReLU())
+        
+        layers.append(nn.Linear(hidden_dim, output_dim))
+        return nn.Sequential(*layers)
+    
+    def forward(self, 
+                state: torch.Tensor, 
+                preference: torch.Tensor) -> torch.Tensor:
+        """
+        Compute action logits conditioned on preference.
+        
+        Args:
+            state: State tensor
+            preference: Encoded preference vector
+        
+        Returns:
+            logits: Action logits
+        """
+        if self.conditioning_type == 'concat':
+            combined = torch.cat([state, preference], dim=-1)
+            return self.network(combined)
+        
+        elif self.conditioning_type == 'film':
+            # Encode state
+            features = self.state_encoder(state)
+            
+            # Generate FiLM parameters
+            film_params = self.film_layer(preference)
+            gamma, beta = torch.chunk(film_params, 2, dim=-1)
+            
+            # Apply FiLM: scale and shift
+            features = gamma * features + beta
+            
+            # Output layer
+            return self.output_layer(features)
+
+
+class MOGFN_PC(BaseGFlowNet):
+    """
+    Multi-Objective GFlowNet with Preference Conditioning (MOGFN-PC).
+    
+    Extends BaseGFlowNet to handle multiple objectives by conditioning
+    the policy on preference vectors.
+    """
+    
+    def __init__(self,
+                state_dim: int,
+                num_objectives: int,
+                hidden_dim: int,
+                num_actions: int,
+                num_layers: int = 3,
+                preference_encoding: str = 'vanilla',
+                conditioning_type: str = 'concat',
+                exploration_rate: float = 0.1):
+        """
+        Args:
+            state_dim: Dimension of state space
+            num_objectives: Number of objectives
+            hidden_dim: Hidden dimension for networks
+            num_actions: Number of possible actions
+            num_layers: Number of layers in networks
+            preference_encoding: 'vanilla' or 'thermometer'
+            conditioning_type: 'concat' or 'film'
+            exploration_rate: Epsilon for exploration
+        """
+        # Don't call super().__init__ since we're replacing the networks
+        nn.Module.__init__(self)
+        
+        self.state_dim = state_dim
+        self.num_objectives = num_objectives
+        self.num_actions = num_actions
+        self.exploration_rate = exploration_rate
+        
+        # Preference encoder
+        self.preference_encoder = PreferenceEncoder(
+            num_objectives=num_objectives,
+            encoding_type=preference_encoding,
+            output_dim=hidden_dim if preference_encoding == 'thermometer' else None
+        )
+        
+        preference_dim = self.preference_encoder.output_dim
+        
+        # Conditional forward policy
+        self.forward_policy = ConditionalPolicyNetwork(
+            state_dim=state_dim,
+            preference_dim=preference_dim,
+            hidden_dim=hidden_dim,
+            num_actions=num_actions,
+            num_layers=num_layers,
+            conditioning_type=conditioning_type
+        )
+        
+        # Conditional backward policy
+        self.backward_policy = ConditionalPolicyNetwork(
+            state_dim=state_dim,
+            preference_dim=preference_dim,
+            hidden_dim=hidden_dim,
+            num_actions=num_actions,
+            num_layers=num_layers,
+            conditioning_type=conditioning_type
+        )
+        
+        # Log Z - now may depend on preference
+        self.log_Z = nn.Parameter(torch.zeros(1))
+    
+    def forward_logits(self, 
+                    state: torch.Tensor,
+                    preference: torch.Tensor) -> torch.Tensor:
+        """Get forward policy logits conditioned on preference."""
+        encoded_pref = self.preference_encoder(preference)
+        return self.forward_policy(state, encoded_pref)
+    
+    def backward_logits(self,
+                    state: torch.Tensor,
+                    preference: torch.Tensor) -> torch.Tensor:
+        """Get backward policy logits conditioned on preference."""
+        encoded_pref = self.preference_encoder(preference)
+        return self.backward_policy(state, encoded_pref)
+    
+    def sample_action(self,
+                    state: torch.Tensor,
+                    preference: torch.Tensor,
+                    valid_actions: Optional[List[int]] = None,
+                    explore: bool = True) -> Tuple[int, torch.Tensor]:
+        """
+        Sample action from preference-conditional policy.
+        
+        Args:
+            state: Current state
+            preference: Preference vector
+            valid_actions: List of valid action indices
+            explore: Whether to use exploration
+        
+        Returns:
+            action: Sampled action
+            log_prob: Log probability of action
+        """
+        logits = self.forward_logits(state, preference)
+        
+        # Mask invalid actions
+        if valid_actions is not None:
+            mask = torch.full_like(logits, float('-inf'))
+            mask[valid_actions] = 0
+            logits = logits + mask
+        
+        # Epsilon-greedy exploration
+        if explore and torch.rand(1).item() < self.exploration_rate:
+            if valid_actions is None:
+                valid_actions = list(range(self.num_actions))
+            action = torch.tensor(valid_actions[torch.randint(len(valid_actions), (1,)).item()])
+        else:
+            probs = F.softmax(logits, dim=-1)
+            action = torch.multinomial(probs, 1).squeeze()
+        
+        log_prob = F.log_softmax(logits, dim=-1)[action]
+        
+        return action.item(), log_prob
+    
+    def compute_scalarized_reward(self,
+                                objectives: torch.Tensor,
+                                preference: torch.Tensor,
+                                beta: float = 1.0) -> torch.Tensor:
+        """
+        Compute scalarized reward using preference vector.
+        
+        R(x|ω) = (Σ ωᵢ * Rᵢ(x))^β
+        
+        Args:
+            objectives: Objective values, shape (num_objectives,)
+            preference: Preference vector, shape (num_objectives,)
+            beta: Temperature parameter (reward exponent)
+        
+        Returns:
+            scalar_reward: Scalarized reward
+        """
+        weighted_sum = torch.sum(preference * objectives)
+        return torch.pow(weighted_sum, beta)
+    
+    def trajectory_balance_loss(self,
+                            trajectories: List[Trajectory],
+                            preferences: List[torch.Tensor],
+                            beta: float = 1.0) -> torch.Tensor:
+        """
+        Compute preference-conditional trajectory balance loss.
+        
+        Args:
+            trajectories: List of trajectories
+            preferences: List of preference vectors (one per trajectory)
+            beta: Reward exponent
+        
+        Returns:
+            loss: TB loss
+        """
+        losses = []
+        
+        for traj, pref in zip(trajectories, preferences):
+            # Forward flow: log Z + sum_t log P_F(a_t | s_t, ω)
+            log_forward_flow = self.log_Z
+            
+            for state, action in zip(traj.states[:-1], traj.actions):
+                logits = self.forward_logits(state, pref)
+                log_prob = F.log_softmax(logits, dim=-1)[action]
+                log_forward_flow = log_forward_flow + log_prob
+            
+            # Backward flow: log R(x|ω) + sum_t log P_B(a_t | s_t, ω)
+            # traj.reward should be the multi-objective rewards
+            if isinstance(traj.reward, torch.Tensor):
+                scalar_reward = self.compute_scalarized_reward(traj.reward, pref, beta)
+            else:
+                scalar_reward = torch.tensor(traj.reward)
+            
+            log_reward = torch.log(scalar_reward + 1e-10)
+            log_backward_flow = log_reward
+            
+            for state, action in zip(traj.states[1:], traj.actions):
+                logits = self.backward_logits(state, pref)
+                log_prob = F.log_softmax(logits, dim=-1)[action]
+                log_backward_flow = log_backward_flow + log_prob
+            
+            # TB loss
+            loss = (log_forward_flow - log_backward_flow) ** 2
+            losses.append(loss)
+        
+        return torch.stack(losses).mean()
+    
+    def compute_loss(self,
+                    trajectories: List[Trajectory],
+                    preferences: List[torch.Tensor],
+                    beta: float = 1.0,
+                    loss_type: str = 'tb') -> torch.Tensor:
+        """
+        Compute training loss for MOGFN.
+        
+        Args:
+            trajectories: List of trajectories
+            preferences: List of preference vectors
+            beta: Reward exponent
+            loss_type: Loss type ('tb')
+        
+        Returns:
+            loss: Training loss
+        """
+        if loss_type == 'tb':
+            return self.trajectory_balance_loss(trajectories, preferences, beta)
+        else:
+            raise ValueError(f"Unknown loss type: {loss_type}")
+
+
+class MultiObjectiveEnvironment(GFlowNetEnvironment):
+    """
+    Extended environment interface for multi-objective problems.
+    """
+    
+    @abstractmethod
+    def compute_objectives(self, state: torch.Tensor) -> torch.Tensor:
+        """
+        Compute all objective values for terminal state.
+        
+        Returns:
+            objectives: Tensor of shape (num_objectives,)
+        """
+        pass
+    
+    @property
+    @abstractmethod
+    def num_objectives(self) -> int:
+        """Number of objectives."""
+        pass
+    
+    def compute_reward(self, state: torch.Tensor) -> torch.Tensor:
+        """Return multi-objective rewards (overrides base class)."""
+        return self.compute_objectives(state)
+
+
+class PreferenceSampler:
+    """
+    Samples preference vectors from various distributions.
+    """
+    
+    def __init__(self, 
+                num_objectives: int,
+                distribution: str = 'dirichlet',
+                alpha: float = 1.5):
+        """
+        Args:
+            num_objectives: Number of objectives
+            distribution: 'dirichlet', 'uniform', or 'grid'
+            alpha: Dirichlet concentration parameter
+        """
+        self.num_objectives = num_objectives
+        self.distribution = distribution
+        self.alpha = alpha
+    
+    def sample(self, batch_size: int = 1) -> torch.Tensor:
+        """
+        Sample preference vectors.
+        
+        Args:
+            batch_size: Number of preferences to sample
+        
+        Returns:
+            preferences: Tensor of shape (batch_size, num_objectives)
+        """
+        if self.distribution == 'dirichlet':
+            alpha = np.ones(self.num_objectives) * self.alpha
+            samples = np.random.dirichlet(alpha, size=batch_size)
+            return torch.from_numpy(samples).float()
+        
+        elif self.distribution == 'uniform':
+            # Uniform on simplex
+            samples = np.random.exponential(size=(batch_size, self.num_objectives))
+            samples = samples / samples.sum(axis=1, keepdims=True)
+            return torch.from_numpy(samples).float()
+        
+        elif self.distribution == 'grid':
+            # Uniform grid (only for small num_objectives)
+            if self.num_objectives > 3:
+                raise ValueError("Grid sampling only supported for ≤3 objectives")
+            
+            n_points = int(np.power(batch_size, 1/self.num_objectives)) + 1
+            grid = np.linspace(0, 1, n_points)
+            
+            if self.num_objectives == 2:
+                prefs = np.array([[1-x, x] for x in grid])
+            elif self.num_objectives == 3:
+                prefs = []
+                for x in grid:
+                    for y in grid:
+                        z = 1 - x - y
+                        if z >= 0:
+                            prefs.append([x, y, z])
+                prefs = np.array(prefs)
+            
+            # Randomly sample from grid if batch_size < grid size
+            if len(prefs) > batch_size:
+                indices = np.random.choice(len(prefs), batch_size, replace=False)
+                prefs = prefs[indices]
+            
+            return torch.from_numpy(prefs).float()
+        
+        else:
+            raise ValueError(f"Unknown distribution: {self.distribution}")
+
+
+class MOGFNSampler:
+    """Sampler for multi-objective GFlowNet."""
+    
+    def __init__(self,
+                mogfn: MOGFN_PC,
+                env: MultiObjectiveEnvironment,
+                preference_sampler: PreferenceSampler):
+        self.mogfn = mogfn
+        self.env = env
+        self.preference_sampler = preference_sampler
+    
+    def sample_trajectory(self, 
+                        preference: torch.Tensor,
+                        explore: bool = True) -> Trajectory:
+        """
+        Sample trajectory conditioned on preference.
+        
+        Args:
+            preference: Preference vector
+            explore: Whether to use exploration
+        
+        Returns:
+            trajectory: Complete trajectory with multi-objective rewards
+        """
+        states = []
+        actions = []
+        log_probs = []
+        
+        # Start from initial state
+        state = self.env.get_initial_state()
+        states.append(state)
+        is_terminal = False
+        
+        # Sample until terminal
+        while not is_terminal:
+            valid_actions = self.env.get_valid_actions(state)
+            
+            # Sample action conditioned on preference
+            action, log_prob = self.mogfn.sample_action(
+                state, preference, valid_actions, explore=explore
+            )
+            
+            # Take step
+            next_state, is_terminal = self.env.step(state, action)
+            
+            # Record
+            actions.append(action)
+            log_probs.append(log_prob)
+            states.append(next_state)
+            
+            state = next_state
+        
+        # Compute multi-objective rewards
+        objectives = self.env.compute_objectives(state)
+        
+        return Trajectory(
+            states=states,
+            actions=actions,
+            log_probs=log_probs,
+            is_terminal=True,
+            reward=objectives  # Store multi-objective rewards
+        )
+    
+    def sample_batch(self,
+                    batch_size: int,
+                    explore: bool = True,
+                    fixed_preferences: Optional[torch.Tensor] = None) -> Tuple[List[Trajectory], List[torch.Tensor]]:
+        """
+        Sample batch of trajectories with preferences.
+        
+        Args:
+            batch_size: Number of trajectories
+            explore: Whether to explore
+            fixed_preferences: Use these preferences instead of sampling (optional)
+        
+        Returns:
+            trajectories: List of trajectories
+            preferences: List of preference vectors used
+        """
+        if fixed_preferences is not None:
+            preferences = fixed_preferences
+            if len(preferences) != batch_size:
+                raise ValueError(f"Fixed preferences length {len(preferences)} != batch_size {batch_size}")
+        else:
+            preferences = self.preference_sampler.sample(batch_size)
+        
+        trajectories = []
+        for i in range(batch_size):
+            traj = self.sample_trajectory(preferences[i], explore=explore)
+            trajectories.append(traj)
+        
+        return trajectories, [preferences[i] for i in range(batch_size)]
+
+
+class MOGFNTrainer:
+    """Trainer for Multi-Objective GFlowNet."""
+    
+    def __init__(self,
+                mogfn: MOGFN_PC,
+                env: MultiObjectiveEnvironment,
+                preference_sampler: PreferenceSampler,
+                optimizer: torch.optim.Optimizer,
+                beta: float = 1.0):
+        """
+        Args:
+            mogfn: MOGFN-PC model
+            env: Multi-objective environment
+            preference_sampler: Preference sampler
+            optimizer: PyTorch optimizer
+            beta: Reward exponent for scalarization
+        """
+        self.mogfn = mogfn
+        self.env = env
+        self.sampler = MOGFNSampler(mogfn, env, preference_sampler)
+        self.optimizer = optimizer
+        self.beta = beta
+        
+        self.losses = []
+        self.iteration = 0
+    
+    def train_step(self, batch_size: int = 128) -> Dict[str, float]:
+        """
+        Perform one training step.
+        
+        Args:
+            batch_size: Number of trajectories to sample
+        
+        Returns:
+            metrics: Dictionary of training metrics
+        """
+        self.mogfn.train()
+        
+        # Sample trajectories with preferences
+        trajectories, preferences = self.sampler.sample_batch(batch_size, explore=True)
+        
+        # Compute loss
+        loss = self.mogfn.compute_loss(trajectories, preferences, beta=self.beta)
+        
+        # Backward pass
+        self.optimizer.zero_grad()
+        loss.backward()
+        
+        # Gradient clipping
+        torch.nn.utils.clip_grad_norm_(self.mogfn.parameters(), max_norm=1.0)
+        
+        self.optimizer.step()
+        
+        # Track metrics
+        self.losses.append(loss.item())
+        self.iteration += 1
+        
+        metrics = {
+            'loss': loss.item(),
+            'log_Z': self.mogfn.log_Z.item(),
+            'iteration': self.iteration
+        }
+        
+        return metrics
+    
+    def train(self, 
+            num_iterations: int,
+            batch_size: int = 128,
+            log_every: int = 100) -> Dict[str, List]:
+        """
+        Train for multiple iterations.
+        
+        Args:
+            num_iterations: Number of training iterations
+            batch_size: Batch size
+            log_every: Log frequency
+        
+        Returns:
+            history: Training history
+        """
+        history = {'loss': [], 'log_Z': [], 'iteration': []}
+        
+        for i in range(num_iterations):
+            metrics = self.train_step(batch_size)
+            
+            if i % log_every == 0:
+                print(f"Iteration {i}/{num_iterations} - Loss: {metrics['loss']:.4f}, log Z: {metrics['log_Z']:.4f}")
+                
+                for key, value in metrics.items():
+                    history[key].append(value)
+        
+        return history
+    
+    def evaluate(self, 
+                num_samples: int = 1000,
+                preference: Optional[torch.Tensor] = None) -> Dict[str, any]:
+        """
+        Evaluate the model.
+        
+        Args:
+            num_samples: Number of samples to generate
+            preference: Fixed preference (None = sample diverse preferences)
+        
+        Returns:
+            results: Evaluation results
+        """
+        self.mogfn.eval()
+        
+        all_objectives = []
+        all_preferences = []
+        
+        with torch.no_grad():
+            if preference is not None:
+                # Fixed preference
+                preferences = preference.unsqueeze(0).repeat(num_samples, 1)
+            else:
+                # Sample diverse preferences
+                preferences = self.sampler.preference_sampler.sample(num_samples)
+            
+            for i in range(num_samples):
+                traj = self.sampler.sample_trajectory(preferences[i], explore=False)
+                all_objectives.append(traj.reward)
+                all_preferences.append(preferences[i])
+        
+        all_objectives = torch.stack(all_objectives)
+        all_preferences = torch.stack(all_preferences)
+        
+        results = {
+            'objectives': all_objectives,
+            'preferences': all_preferences,
+            'num_samples': num_samples
+        }
+        
+        return results
+
+
+def test_mogfn():
+    """Test MOGFN implementation with a simple multi-objective environment."""
+    
+    class DummyMOEnvironment(MultiObjectiveEnvironment):
+        """Simple 2-objective environment for testing."""
+        
+        def __init__(self):
+            self._num_objectives = 2
+            self._state_dim = 4
+            self._num_actions = 4
+        
+        def get_initial_state(self):
+            return torch.zeros(self._state_dim)
+        
+        def step(self, state, action):
+            next_state = state.clone()
+            next_state[action] = 1.0
+            is_terminal = torch.sum(next_state) >= 3
+            return next_state, is_terminal
+        
+        def get_valid_actions(self, state):
+            return [i for i in range(self._num_actions) if state[i] == 0]
+        
+        def compute_objectives(self, state):
+            # Two conflicting objectives
+            obj1 = torch.sum(state[:2])  # Maximize first half
+            obj2 = torch.sum(state[2:])  # Maximize second half
+            return torch.tensor([obj1, obj2])
+        
+        @property
+        def state_dim(self):
+            return self._state_dim
+        
+        @property
+        def num_actions(self):
+            return self._num_actions
+        
+        @property
+        def num_objectives(self):
+            return self._num_objectives
+    
+    # Create environment
+    env = DummyMOEnvironment()
+    
+    # Create MOGFN
+    mogfn = MOGFN_PC(
+        state_dim=env.state_dim,
+        num_objectives=env.num_objectives,
+        hidden_dim=64,
+        num_actions=env.num_actions,
+        num_layers=3,
+        preference_encoding='vanilla',
+        conditioning_type='concat'
+    )
+    
+    # Create preference sampler
+    pref_sampler = PreferenceSampler(
+        num_objectives=env.num_objectives,
+        distribution='dirichlet',
+        alpha=1.5
+    )
+    
+    # Create trainer
+    optimizer = torch.optim.Adam(mogfn.parameters(), lr=1e-3)
+    trainer = MOGFNTrainer(
+        mogfn=mogfn,
+        env=env,
+        preference_sampler=pref_sampler,
+        optimizer=optimizer,
+        beta=1.0
+    )
+    
+    # Train for a few iterations
+    print("Training MOGFN-PC...")
+    history = trainer.train(num_iterations=100, batch_size=16, log_every=20)
+    
+    # Evaluate
+    print("\nEvaluating...")
+    results = trainer.evaluate(num_samples=50)
+    
+    print(f"\nTest completed!")
+    print(f"Generated {results['num_samples']} samples")
+    print(f"Objective space coverage:")
+    print(f"  Obj 1 - min: {results['objectives'][:, 0].min():.2f}, max: {results['objectives'][:, 0].max():.2f}")
+    print(f"  Obj 2 - min: {results['objectives'][:, 1].min():.2f}, max: {results['objectives'][:, 1].max():.2f}")
+    
+    # Test different conditioning types
+    print("\n" + "="*50)
+    print("Testing FiLM conditioning...")
+    mogfn_film = MOGFN_PC(
+        state_dim=env.state_dim,
+        num_objectives=env.num_objectives,
+        hidden_dim=64,
+        num_actions=env.num_actions,
+        conditioning_type='film'
+    )
+    
+    optimizer_film = torch.optim.Adam(mogfn_film.parameters(), lr=1e-3)
+    trainer_film = MOGFNTrainer(mogfn_film, env, pref_sampler, optimizer_film)
+    
+    print("Training with FiLM conditioning...")
+    history_film = trainer_film.train(num_iterations=100, batch_size=16, log_every=20)
+    
+    print("\nFiLM test completed!")
+    
+    # Test thermometer encoding
+    print("\n" + "="*50)
+    print("Testing thermometer encoding...")
+    mogfn_therm = MOGFN_PC(
+        state_dim=env.state_dim,
+        num_objectives=env.num_objectives,
+        hidden_dim=64,
+        num_actions=env.num_actions,
+        preference_encoding='thermometer',
+        conditioning_type='concat'
+    )
+    
+    optimizer_therm = torch.optim.Adam(mogfn_therm.parameters(), lr=1e-3)
+    trainer_therm = MOGFNTrainer(mogfn_therm, env, pref_sampler, optimizer_therm)
+    
+    print("Training with thermometer encoding...")
+    history_therm = trainer_therm.train(num_iterations=100, batch_size=16, log_every=20)
+    
+    print("\nThermometer encoding test completed!")
+    print("\n" + "="*50)
+    print("All tests passed successfully!")
+
+
+if __name__ == '__main__':
+    test_mogfn()
