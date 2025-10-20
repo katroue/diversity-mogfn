@@ -54,3 +54,4 @@ def mode_coverage_entropy(solutions_obj_space, eps='auto',min_samples=5):
     mce = entropy / max_entropy if max_entropy > 0 else 0.0
     
     return mce, num_modes
+
