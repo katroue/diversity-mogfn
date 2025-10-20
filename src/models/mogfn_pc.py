@@ -13,8 +13,22 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import List, Tuple, Optional, Dict, Union
 import numpy as np
+from abc import ABC, abstractmethod
 
-from gflownet import BaseGFlowNet, Trajectory, GFlowNetEnvironment, PolicyNetwork
+try:
+    # Normal package import when used as part of the `models` package
+    from .gflownet import BaseGFlowNet, Trajectory, GFlowNetEnvironment, PolicyNetwork
+except Exception:
+    # Fallback for running this file directly (python src/models/mogfn_pc.py)
+    # Add the `src` directory to sys.path so `models` becomes importable.
+    import os, sys
+
+    src_models_dir = os.path.dirname(os.path.abspath(__file__))  # .../src/models
+    src_dir = os.path.dirname(src_models_dir)  # .../src
+    if src_dir not in sys.path:
+        sys.path.insert(0, src_dir)
+
+    from models.gflownet import BaseGFlowNet, Trajectory, GFlowNetEnvironment, PolicyNetwork
 
 
 class PreferenceEncoder(nn.Module):
