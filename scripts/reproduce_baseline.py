@@ -5,9 +5,7 @@ This script tests your MOGFN-PC implementation on the HyperGrid environment
 to verify it matches the results from Jain et al. (2023).
 
 Usage:
-    python scripts/reproduce_baseline.py --config configs/tasks/hypergrid.yaml
-    
-Or run directly:
+    Run directly:
     python scripts/reproduce_baseline.py
 """
 
