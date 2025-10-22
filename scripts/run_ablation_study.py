@@ -8,22 +8,24 @@ for systematic ablation studies.
 Usage:
     # Capacity ablation
     python scripts/run_ablation_study.py \
-        --config configs/ablations/capacity_ablation.yaml \
+        --config experiments/configs/ablations/capacity_ablation.yaml \
         --ablation capacity \
         --output_dir results/ablations/capacity
     
     # Sampling ablation
     python scripts/run_ablation_study.py \
-        --config configs/ablations/sampling_ablation.yaml \
+        --config experiments/configs/ablations/sampling_ablation.yaml \
         --ablation sampling \
         --output_dir results/ablations/sampling
     
     # Loss ablation
     python scripts/run_ablation_study.py \
-        --config configs/ablations/loss_ablation.yaml \
+        --config experiments/configs/ablations/loss_ablation.yaml \
         --ablation loss \
         --output_dir results/ablations/loss
 """
+import sys
+sys.path.append('/Users/katherinedemers/Documents/GitHub/diversity-mogfn')
 
 import argparse
 import yaml
@@ -175,7 +177,7 @@ def run_single_experiment(exp_config: dict,
     
     # Trajectory metrics (need to sample trajectories)
     print("  Computing trajectory metrics...")
-    from models.mogfn import MOGFNSampler
+    from src.models.mogfn_pc import MOGFNSampler
     sampler = MOGFNSampler(mogfn, env, pref_sampler)
     trajectories = []
     for i in range(min(100, len(preferences))):  # Sample subset for efficiency
