@@ -16,7 +16,7 @@ def preference_aligned_spread(gflownet, num_preferences=2, samples_per_pref=50):
     """
     
     import numpy as np
-    from spicy.spatial.distance import pdist
+    from scipy.spatial.distance import pdist  # FIXED: was 'spicy'
     
     spreads = []
     
@@ -29,6 +29,11 @@ def preference_aligned_spread(gflownet, num_preferences=2, samples_per_pref=50):
             traj = gflownet.sample_trajectory(preference=pref)
             final_state = traj.final_state()
             obj_values = gflownet.env.get_objective(final_state)
+            
+            # FIXED: Convert PyTorch tensor to numpy if needed
+            if hasattr(obj_values, 'cpu'):
+                obj_values = obj_values.cpu().numpy()
+            
             solutions_obj.append(obj_values)
         
         solutions_obj = np.array(solutions_obj)
@@ -76,6 +81,10 @@ def pareto_front_smoothness(objectives: np.ndarray, method: str = 'curve_fitting
     Returns:
         pfs: Pareto front smoothness score (lower is smoother)
     """
+    # FIXED: Convert PyTorch tensor to numpy at the start
+    if hasattr(objectives, 'cpu'):
+        objectives = objectives.cpu().numpy()
+    
     if len(objectives) < 3:
         return 0.0  # Need at least 3 points for smoothness
     
@@ -84,6 +93,7 @@ def pareto_front_smoothness(objectives: np.ndarray, method: str = 'curve_fitting
     is_dominated = np.zeros(n, dtype=bool)
     for i in range(n):
         for j in range(n):
+            # FIXED: objectives is now guaranteed to be numpy array
             if i != j and np.all(objectives[j] <= objectives[i]) and np.any(objectives[j] < objectives[i]):
                 is_dominated[i] = True
                 break

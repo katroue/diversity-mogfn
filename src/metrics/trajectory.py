@@ -26,8 +26,7 @@ def trajectory_diversity_score(trajectories):
         for j in range(i + 1, N):
             dist = edit_distance(trajectories[i].actions, trajectories[j].actions)
             total_distance += dist
-            max_possible += max(len(trajectories[i].actions), len(trajectories[j].actions)
-                            )
+            max_possible += max(len(trajectories[i].actions), len(trajectories[j].actions))
     
     if max_possible == 0:
         return 0.0
@@ -62,68 +61,6 @@ def edit_distance(seq1, seq2):
     return matrix[-1][-1]
 
 
-def multi_path_diversity(gflownet, terminal_states, samples_per_states=100):
-    """
-    Estimate MPD by sampling multiple paths to each terminal state.
-    
-    Args: 
-        gflownet (_type_): GFlowNet model with backward policy
-        terminal_states (_type_): List of terminal states to sample paths for
-        samples_per_states (int, optional): Number of trajectories to sample per terminal state
-        
-        Returns:
-        mpd: Average trajectory diversity score across terminal states
-        path_counts: Dict mapping state -> estimated path count
-    """
-    
-    import numpy as np
-    from collections import defaultdict
-    
-    log_path_diversities = []
-    path_counts = {}
-    
-    for terminal_state in terminal_states:
-        trajectories = []
-        
-        for _ in range(samples_per_states):
-            traj = gflownet.sample_backward_trajectory(final_state=terminal_state)
-            trajectories.append(traj)
-        
-        unique_paths - estimate_unique_paths(trajectories)
-        
-        log_diversity = np.log(unique_paths + 1)
-        log_path_diversities
-        path_counts[terminal_state] = unique_paths
-    
-    mpd = np.mean(log_path_diversities)
-    return mpd, path_counts
-
-def estimate_unique_paths(trajectories, treshold=0.9):
-    """Estimate number of unique paths using similarirty treshold.
-    
-    Two trajectories are considered the same path if their similarirty < threshold."""
-    
-    from scipy.spatial.distance import pdist, squareform
-    import numpy as np
-    
-    if len(trajectories) <= 1:
-        return len(trajectories)
-    
-    
-    n = len
-    traj_matrix = np.zeros((n, max(len(t.actions) for t in trajectories)), dtype=int)
-    
-    for i, traj in enumerate(trajectories):
-        traj_matrix[i, :len(traj.actions)] = traj.actions
-    pairwise_dists = squareform(pdist(traj_matrix, metric='hamming')) 
-    
-    visited = set()
-    unique_count = 0
-    
-    for i in range(n):
-        if i in visited:
-            continue
-        unique_count += 1
 def multi_path_diversity(trajectories: List[Any],
                         method: str = 'entropy',
                         similarity_threshold: float = 0.9) -> float:
@@ -243,8 +180,8 @@ def _count_unique_trajectories(trajectories: List[Any],
                 marked.add(j)
     
     return unique_count
-        
-        # Mark all similar trajectories
+
+
 def _trajectory_similarity(traj1: Any, traj2: Any) -> float:
     """
     Compute similarity between two trajectories using normalized edit distance.
@@ -282,13 +219,6 @@ def _trajectory_similarity(traj1: Any, traj2: Any) -> float:
                     dp[i-1][j-1]     # substitution
                 )
     
-    edit_distance = dp[m][n]
-    max_length = max(m, n)
-    
-    # Convert to similarity (1 - normalized distance)
-    similarity = 1.0 - (edit_distance / max_length)
-    
-    return similarity
     edit_distance = dp[m][n]
     max_length = max(m, n)
     

@@ -16,12 +16,16 @@ def mode_coverage_entropy(solutions_obj_space, eps='auto',min_samples=5):
     from sklearn.cluster import DBSCAN
     from sklearn.neighbors import NearestNeighbors
     
+    # FIXED: Convert PyTorch tensor to numpy if needed
+    if hasattr(solutions_obj_space, 'cpu'):
+        solutions_obj_space = solutions_obj_space.cpu().numpy()
+    
     N = len(solutions_obj_space)
     
     if N < min_samples:
         return 0.0, 0
     
-    # Auto-tune eps using k-distance graph\
+    # Auto-tune eps using k-distance graph
     if eps == 'auto':
         neigh = NearestNeighbors(n_neighbors=min_samples)
         nbrs = neigh.fit(solutions_obj_space)
@@ -72,6 +76,10 @@ def pairwise_minimum_distance(objectives: np.ndarray, top_k: int = None) -> floa
     """
     from scipy.spatial.distance import pdist
     
+    # FIXED: Convert PyTorch tensor to numpy if needed
+    if hasattr(objectives, 'cpu'):
+        objectives = objectives.cpu().numpy()
+    
     # Select top-K non-dominated solutions if specified
     if top_k is not None and top_k < len(objectives):
         # Find non-dominated solutions
@@ -79,6 +87,7 @@ def pairwise_minimum_distance(objectives: np.ndarray, top_k: int = None) -> floa
         is_dominated = np.zeros(n, dtype=bool)
         for i in range(n):
             for j in range(n):
+                # FIXED: objectives is now guaranteed to be numpy array
                 if i != j and np.all(objectives[j] <= objectives[i]) and np.any(objectives[j] < objectives[i]):
                     is_dominated[i] = True
                     break
