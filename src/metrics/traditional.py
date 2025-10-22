@@ -6,7 +6,6 @@ and evolutionary algorithms literature (NSGA-II, MOEA/D, etc.).
 """
 
 import numpy as np
-import torch
 from typing import Union, Optional, List, Dict
 from scipy.spatial.distance import pdist, cdist
 

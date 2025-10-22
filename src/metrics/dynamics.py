@@ -1,8 +1,10 @@
 import numpy as np
+from typing import List, Any, Optional
+import torch
 
-def replay_buffer_diversity(replay_buffer: List[Trajectory], 
+def replay_buffer_diversity(replay_buffer: List[Any],
                             metric: str = 'trajectory_distance',
-                            sample_size: int = None) -> float:
+                            sample_size: Optional[int] = None) -> float:
     """
     Compute Replay Buffer Diversity (RBD).
     
