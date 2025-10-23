@@ -3,7 +3,6 @@ import numpy as np
 def preference_aligned_spread(gflownet, num_preferences=2, samples_per_pref=50):
     """Compute PAS by sampling multiple preferences and measuring spread
     
-
     Args:
         gflownet (_type_): Conditional GFLowNet (MOGFN-PC or HN-GFN)
         num_preferences (int, optional): Number of preference vectors to sample.
