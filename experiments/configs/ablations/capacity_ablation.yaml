@@ -1,41 +1,29 @@
 # configs/ablations/capacity_ablation.yaml
 
 experiments:
-  - name: small_concat
-    capacity: small
-    hidden_dim: 32
-    num_layers: 2
-    conditioning: concat
+  #- name: small_concat
+  #  capacity: small
+  #  hidden_dim: 32
+  #  num_layers: 2
+  #  conditioning: concat
     
-  - name: small_film
-    capacity: small
-    hidden_dim: 32
-    num_layers: 2
-    conditioning: film
-  
-  - name: small_hypernet
-    capacity: small
-    hidden_dim: 32
-    num_layers: 2
-    conditioning: hypernet
+  #- name: small_film
+  #  capacity: small
+  #  hidden_dim: 32
+  #  num_layers: 2
+  #  conditioning: film
     
-  - name: medium_concat
-    capacity: medium
-    hidden_dim: 64
-    num_layers: 3
-    conditioning: concat
+  #- name: medium_concat
+  #  capacity: medium
+  #  hidden_dim: 64
+  #  num_layers: 3
+  #  conditioning: concat
   
-  - name : medium_film
-    capacity: medium
-    hidden_dim: 64
-    num_layers: 3
-    conditioning: film
-  
-  - name: medium_hypernet
-    capacity: medium
-    hidden_dim: 64
-    num_layers: 3
-    conditioning: hypernet
+  #- name : medium_film
+  #  capacity: medium
+  #  hidden_dim: 64
+  #  num_layers: 3
+  #  conditioning: film
   
   - name: large_concat
     capacity: large
@@ -49,12 +37,6 @@ experiments:
     num_layers: 4
     conditioning: film
   
-  - name: large_hypernet
-    capacity: large
-    hidden_dim: 128
-    num_layers: 4
-    conditioning: hypernet
-  
   - name: xlarge_concat
     capacity: xlarge
     hidden_dim: 256
@@ -66,12 +48,6 @@ experiments:
     hidden_dim: 256
     num_layers: 4
     conditioning: film
-  
-  - name: xlarge_hypernet
-    capacity: xlarge
-    hidden_dim: 256
-    num_layers: 4
-    conditioning: hypernet
 
 # Fixed constants across all
 fixed:

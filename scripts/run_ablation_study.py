@@ -201,20 +201,12 @@ def run_single_experiment(exp_config: dict,
     
     # Objective metrics
     print("  Computing objective metrics...")
-    # FIXED: Corrected function signature - preference_aligned_spread expects (gflownet, num_preferences, samples_per_pref)
-    # We need to create a wrapper that matches what the function expects
-    # For now, using a simplified version that doesn't require the full gflownet structure
-    try:
-        # Try to compute PAS if the implementation allows
-        pas_results = preference_aligned_spread(
-            mogfn,  # Pass the model (function needs updating to work with this)
-            num_preferences=20, 
-            samples_per_pref=50
-        )
-        metrics['pas'] = pas_results[0]  # Mean spread
-    except Exception as e:
-        print(f"  Warning: Could not compute PAS: {e}")
-        metrics['pas'] = 0.0
+    # Note: PAS (Preference-Aligned Spread) requires sampling from the model
+    # which needs the full gflownet setup. For now, we skip it in quick testing.
+    # The main objective metric we use is PFS (already computed in spatial metrics)
+    metrics['pas'] = 0.0  # Skip PAS for now - requires complex sampling setup
+    print(f"  Note: PAS skipped (requires full sampling setup)")
+    print(f"  Using PFS (Pareto Front Smoothness) as main objective metric")
     
     # Dynamics metrics
     print("  Computing dynamics metrics...")

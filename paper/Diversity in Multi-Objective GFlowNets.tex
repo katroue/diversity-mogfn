@@ -1,0 +1,153 @@
+\documentclass[10pts]{article}
+\usepackage[utf8]{inputenc}
+\usepackage{amsmath}
+\makeatletter
+\usepackage{mathtools}
+\usepackage[utf8]{inputenc}
+\usepackage[top=2cm, bottom=2cm, left=2cm, right=2cm]{geometry}
+% Permet de définir les marge
+\usepackage{amsfonts}
+% Permet d'utiliser les commandes tels que \mathbb{R}
+\usepackage{tikz}
+\usepackage{amssymb}
+\usepackage{algorithm}
+\usepackage{algpseudocode}  
+\usepackage{indentfirst}
+% Marge de début de paragraphe
+\usepackage{parskip}
+\usepackage{multicol}
+% Permet d'avoir plusieurs colonnes 
+\usepackage{mathtools}
+% pour utiliser PairedDelimiter sans utiliser \left \right
+\usepackage{hyperref}
+\renewcommand\not[1]{#1\xnot}
+  \renewcommand{\notin}{\not\in}
+
+\renewcommand{\baselinestretch}{2} 
+\usepackage{listings}
+\usepackage{xcolor}
+
+\usepackage{graphicx}
+\graphicspath{ {./images/} }
+
+\usepackage{hyperref}
+\usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue, citecolor=blue]{hyperref}
+
+
+\usepackage[round]{natbib}
+\usepackage[colorlinks=true, citecolor=blue, urlcolor=blue, linkcolor=blue]{hyperref}
+
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    keywordstyle=\color{blue},
+    stringstyle=\color{red},
+    commentstyle=\color{green},
+    showstringspaces=false,
+}
+
+\DeclarePairedDelimiterX\paren[1]{(}{)}{#1}
+% utiliser * pour des grosse parenthèse plutôt que \left \right 
+% ex \paren*{\frac{1}{2}}
+
+\DeclarePairedDelimiterX\bracket[1]{[}{]}{#1}
+% même chose que l'autre d'avant mais pour des crochets
+
+\usepackage{bm}
+\usepackage{array}
+\usepackage[utf8]{inputenc}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{} % clear all header and footer fields
+\renewcommand{\headrulewidth}{0.4pt} % add line under header
+\renewcommand{\footrulewidth}{0pt}  % no line under footer
+
+% Define the headers
+\fancyhead[C]{Katherine DEMERS} % Centered header
+
+% Define the footers (optional)
+\fancyfoot[C]{\thepage} % Centered footer with page number
+
+\title{Understanding Diversity in Multi-Objective GFlowNets: A Systematic Study of Mechanisms and Metrics}
+\author{Katherine Demers}
+\date{October 2025}
+
+\begin{document}
+
+\maketitle
+\section{Baseline Establishment}
+\subsection{Project Goal}
+Systematically dissect and understand what drives diversity in multi-objective GFlowNets,
+comparing the effects of hypernetwork capacity, preference sampling strategies, and loss functions, while proposing novel GFlowNet-specific diversity metrics.
+
+Our goals is to reproduce MOGFN-PC on the hypergrid task, implements all metrics and establish baseline diversity levels.
+
+\subsection{Relevance of this project}
+While existing MOGFN papers measure diversity (via metrics like pairwise distance),
+there's limited understanding of what actually creates diversity, how to measure it properly and how to deliverately control diversity. Out expected contribution with this paper is a comprehensive empirical study providing actionable insights for practitioners and a suite of new diversity metrics tailored to GFlowNets.
+
+\section{Introduction}
+
+\section{Background \& Related Work}
+\subsection{GFloNets}
+
+\subsection{Diversity in Multi-Objective Optimization}
+Quality-diversity algorithms \citep{pugh2016quality, 7959075} balance 
+solution quality with behavioral diversity. Our work extends these principles 
+to GFlowNets, introducing metrics that leverage the unique properties of 
+generative flow networks \citep{bengio2021flow}...
+
+\subsection{Factors affecting Diversity}
+
+\section{Diversity Metrics for GFlowNets}
+\subsection{Limitations of Existing Metrics}
+While traditional MOO metrics \citep{zitzler1999multiobjective, deb2002fast} 
+measure solution quality, they do not capture GFlowNet-specific characteristics.
+
+\subsection{Proposed Metrics} 
+We propose 14 novel metrics organized into five categories:
+
+\textbf{Trajectory-Based Metrics.} These metrics exploit GFlowNet's sequential 
+generation process. Our Trajectory Diversity Score (TDS) adapts edit distance 
+\citep{levenshtein1966binary} to measure path diversity...
+
+\subsection{Metric Validation}
+
+\section{Experimental Design}
+\subsection{Research Questions}
+
+\subsection{Factors \& Levels}
+
+\subsection{Tasks \& Baselines}
+
+\subsection{Implementation Details}
+
+\section{Results}
+\subsection{Baseline Performance}
+
+\subsection{Ablation Studies}
+\subsubsection{Hypernetwork Capacity Effects}
+
+\subsubsection{Preference Sampling Effects}
+
+\subsubsection{Loss Function Effects}
+
+\subsection{Interaction Analysis}
+
+\subsection{Metric Analysis}
+
+\section{Analysis \& Discussion}
+\subsection{What Drives Diversity?}
+
+\subsection{Practical Guidelines}
+
+\subsection{Metric Recommendations}
+
+\subsection{Limitations \& Future Work}
+
+\section{Conclusions}
+
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+\end{document}
