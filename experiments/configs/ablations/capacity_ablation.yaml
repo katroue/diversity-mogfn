@@ -81,7 +81,7 @@ fixed:
   task: hypergrid
   height: 8
   num_objectives: 2
-  num_iterations: 10000
+  num_iterations: 4000
   batch_size: 128
   learning_rate: 0.001
   seeds: [42, 123, 456, 789, 1011]

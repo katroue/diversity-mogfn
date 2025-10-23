@@ -25,18 +25,46 @@ def mode_coverage_entropy(solutions_obj_space, eps='auto',min_samples=5):
     if N < min_samples:
         return 0.0, 0
     
+    # Adjust min_samples if dataset is too small
+    effective_min_samples = min(min_samples, max(2, N // 5))
+    
     # Auto-tune eps using k-distance graph
     if eps == 'auto':
-        neigh = NearestNeighbors(n_neighbors=min_samples)
-        nbrs = neigh.fit(solutions_obj_space)
-        distances, _ = nbrs.kneighbors(solutions_obj_space)
-        k_distances = np.sort(distances[:, -1])
-        # Heuristic: choose eps at the elbow point
-        diffs = np.diff(k_distances)
-        eps = k_distances[np.argmax(diffs)]
+        try:
+            neigh = NearestNeighbors(n_neighbors=effective_min_samples)
+            nbrs = neigh.fit(solutions_obj_space)
+            distances, _ = nbrs.kneighbors(solutions_obj_space)
+            k_distances = np.sort(distances[:, -1])
+            
+            # Heuristic: choose eps at the elbow point
+            diffs = np.diff(k_distances)
+            eps_candidate = k_distances[np.argmax(diffs)] if len(diffs) > 0 else 0
+            
+            # FIXED: Ensure eps is always positive and reasonable
+            if eps_candidate <= 0 or np.isnan(eps_candidate):
+                # Fallback: use median of k-distances
+                eps = np.median(k_distances)
+                if eps <= 0 or np.isnan(eps):
+                    # Last resort: use mean distance
+                    eps = np.mean(distances[:, -1])
+                    if eps <= 0 or np.isnan(eps):
+                        # Ultimate fallback: use standard deviation
+                        eps = np.std(solutions_obj_space) / 2
+                        if eps <= 0:
+                            eps = 0.1
+            else:
+                eps = float(eps_candidate)
+        except Exception as e:
+            # If auto-tuning fails, use a reasonable default
+            eps = np.std(solutions_obj_space) / 2
+            if eps <= 0 or np.isnan(eps):
+                eps = 0.1
     
-    #Cluster with DBSCAN
-    clustering = DBSCAN(eps=eps, min_samples=min_samples)
+    # Ensure eps is valid
+    eps = max(float(eps), 1e-6)  # Minimum threshold
+    
+    # Cluster with DBSCAN
+    clustering = DBSCAN(eps=eps, min_samples=effective_min_samples)
     labels = clustering.fit_predict(solutions_obj_space)
     
     # Get cluster distribution (excluding noise label -1)

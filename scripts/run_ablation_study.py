@@ -162,14 +162,14 @@ def run_single_experiment(exp_config: dict,
     print(f"\nEvaluating with {config.get('eval_samples', 1000)} samples...")
     eval_results = trainer.evaluate(num_samples=config.get('eval_samples', 1000))
     
-    objectives = eval_results['objectives']
-    preferences = eval_results['preferences']
+    objectives_tensor = eval_results['objectives']
+    preferences_tensor = eval_results['preferences']
     
-    # FIXED: Convert tensors to numpy if needed
-    if isinstance(objectives, torch.Tensor):
-        objectives = objectives.detach().cpu().numpy()
-    if isinstance(preferences, torch.Tensor):
-        preferences = preferences.detach().cpu().numpy()
+    # FIXED: Keep tensors for PyTorch operations, convert to numpy only for metrics
+    if isinstance(objectives_tensor, torch.Tensor):
+        objectives = objectives_tensor.detach().cpu().numpy()
+    else:
+        objectives = objectives_tensor
     
     # Compute all metrics
     print("Computing metrics...")
@@ -185,8 +185,9 @@ def run_single_experiment(exp_config: dict,
     from src.models.mogfn_pc import MOGFNSampler
     sampler = MOGFNSampler(mogfn, env, pref_sampler)
     trajectories = []
-    for i in range(min(100, len(preferences))):  # Sample subset for efficiency
-        traj = sampler.sample_trajectory(preferences[i], explore=False)
+    # FIXED: Use tensor version of preferences for PyTorch model
+    for i in range(min(100, len(preferences_tensor))):  # Sample subset for efficiency
+        traj = sampler.sample_trajectory(preferences_tensor[i], explore=False)
         trajectories.append(traj)
     
     metrics['tds'] = trajectory_diversity_score(trajectories)
@@ -279,9 +280,15 @@ def run_single_experiment(exp_config: dict,
     with open(exp_dir / 'metrics.json', 'w') as f:
         json.dump(metrics, f, indent=2)
     
-    # FIXED: Ensure objectives and preferences are numpy arrays before saving
+    # FIXED: Convert preferences tensor to numpy for saving
+    if isinstance(preferences_tensor, torch.Tensor):
+        preferences_numpy = preferences_tensor.detach().cpu().numpy()
+    else:
+        preferences_numpy = preferences_tensor
+    
+    # Save objectives and preferences
     np.save(exp_dir / 'objectives.npy', objectives)
-    np.save(exp_dir / 'preferences.npy', preferences)
+    np.save(exp_dir / 'preferences.npy', preferences_numpy)
     
     # Save training history
     with open(exp_dir / 'training_history.json', 'w') as f:
