@@ -20,9 +20,37 @@ Usage:
     
     # Loss ablation
     python scripts/run_ablation_study.py \
-        --config experiments/configs/ablations/loss_ablation.yaml \
+        --config experiments/configs/ablations/loss_ablation_final.yaml \
         --ablation loss \
         --output_dir results/ablations/loss
+
+        error : 
+        ======================================================================
+Summary Statistics
+======================================================================
+       hypervolume  r2_indicator  avg_pairwise_distance    spacing     spread        tds        mpd  ...  num_parameters  training_time  final_loss         seed  hidden_dim  num_layers  alpha
+count    20.000000     20.000000              20.000000  20.000000  20.000000  20.000000  20.000000  ...        20.00000      20.000000   20.000000    20.000000   20.000000        20.0   20.0
+mean      1.167982     -0.268905               0.097857   0.092048   1.765427   0.398205   1.376384  ...    168455.00000    4925.058449    0.009285   484.200000  192.000000         4.0    1.5
+std       0.005461      0.000629               0.020825   0.016178   0.026584   0.020047   0.256452  ...    102437.04593    1471.600572    0.016425   383.123671   65.662615         0.0    0.0
+min       1.144780     -0.270054               0.066391   0.070613   1.716930   0.370819   0.980660  ...     68103.00000    3447.753651    0.001269    42.000000  128.000000         4.0    1.5
+25%       1.169203     -0.269197               0.088549   0.083206   1.741712   0.383623   1.167230  ...     68871.00000    3595.159806    0.003511   123.000000  128.000000         4.0    1.5
+50%       1.169203     -0.268910               0.098089   0.090557   1.774764   0.392712   1.358576  ...    168199.00000    4074.331883    0.004960   456.000000  192.000000         4.0    1.5
+75%       1.169203     -0.268563               0.106312   0.094709   1.783915   0.412581   1.506981  ...    267783.00000    6168.718794    0.006433   789.000000  256.000000         4.0    1.5
+max       1.169203     -0.267733               0.163940   0.136717   1.805486   0.433809   1.969361  ...    269319.00000    7516.290520    0.077201  1011.000000  256.000000         4.0    1.5
+
+[8 rows x 23 columns]
+Traceback (most recent call last):
+  File "/Users/katherinedemers/Documents/GitHub/diversity-mogfn/scripts/run_ablation_study.py", line 531, in <module>
+    
+    ^
+  File "/Users/katherinedemers/Documents/GitHub/diversity-mogfn/scripts/run_ablation_study.py", line 519, in main
+    )
+     
+  File "/Users/katherinedemers/Documents/GitHub/diversity-mogfn/scripts/run_ablation_study.py", line 420, in create_summary_report
+    print(results_df.describe())
+^^^^^^^^^^^^^^^^^^^^^
+ModuleNotFoundError: No module named 'seaborn'
+
 """
 import sys
 sys.path.append('/Users/katherinedemers/Documents/GitHub/diversity-mogfn')
@@ -201,12 +229,27 @@ def run_single_experiment(exp_config: dict,
     
     # Objective metrics
     print("  Computing objective metrics...")
-    # Note: PAS (Preference-Aligned Spread) requires sampling from the model
-    # which needs the full gflownet setup. For now, we skip it in quick testing.
-    # The main objective metric we use is PFS (already computed in spatial metrics)
-    metrics['pas'] = 0.0  # Skip PAS for now - requires complex sampling setup
-    print(f"  Note: PAS skipped (requires full sampling setup)")
-    print(f"  Using PFS (Pareto Front Smoothness) as main objective metric")
+    # Compute a simplified version of Preference-Aligned Spread
+    # Instead of the complex sampling, we use the already-evaluated objectives
+    # and check how spread out they are for different preference groups
+    try:
+        # Simple alternative: measure spread within preference-conditioned groups
+        # Group objectives by similar preferences
+        from scipy.spatial.distance import pdist
+        
+        if len(objectives) > 10:  # Need enough samples
+            # Simple PAS approximation: average pairwise distance in objective space
+            # This is a proxy for preference-aligned spread
+            dists = pdist(objectives, metric='euclidean')
+            pas_approx = float(np.mean(dists))
+            metrics['pas'] = pas_approx
+            print(f"  ✓ PAS (simplified): {pas_approx:.4f}")
+        else:
+            metrics['pas'] = 0.0
+            print(f"  Note: Not enough samples for PAS")
+    except Exception as e:
+        print(f"  Warning: Could not compute PAS: {e}")
+        metrics['pas'] = 0.0
     
     # Dynamics metrics
     print("  Computing dynamics metrics...")

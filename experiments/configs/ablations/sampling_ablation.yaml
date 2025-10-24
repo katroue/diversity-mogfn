@@ -2,7 +2,7 @@
 # Tests different sampling strategies and parameters
 
 # Base configuration (same for all experiments)
-base_config:
+fixed:
   env_name: 'hypergrid'
   env_kwargs:
     ndim: 8
@@ -12,15 +12,15 @@ base_config:
     R2: 2.0
   
   # Training parameters (SAME AS CAPACITY ABLATION)
-  num_iterations: 4000  # Same as capacity ablation for fair comparison
+  num_iterations: 4000  # Same as capacity ablation (4000) for fair comparison, testing with 1000 iterations
   batch_size: 128
   lr: 0.001
   
   # Evaluation
   num_samples: 1000  # Number of samples for evaluation
-  eval_every: 500  # Evaluate every 500 iterations
+  eval_every: 500  # Evaluate every 500 iterations, testing with evaluations every 200 iterations
   
-  # Model architecture (BEST FROM CAPACITY ABLATION)
+  # Model architecture (BEST FROM CAPACITY ABLATION FROM HYPOTHESIS)
   hidden_dim: 64
   num_layers: 3
   conditioning: 'film'  # Best from capacity ablation

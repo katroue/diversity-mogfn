@@ -25,23 +25,23 @@ experiments:
   #  num_layers: 3
   #  conditioning: film
   
-  - name: large_concat
-    capacity: large
-    hidden_dim: 128
-    num_layers: 4
-    conditioning: concat
+  #- name: large_concat
+  #  capacity: large
+  #  hidden_dim: 128
+  #  num_layers: 4
+  #  conditioning: concat
   
-  - name: large_film
-    capacity: large
-    hidden_dim: 128
-    num_layers: 4
-    conditioning: film
+  #- name: large_film
+  #  capacity: large
+  #  hidden_dim: 128
+  #  num_layers: 4
+  #  conditioning: film
   
-  - name: xlarge_concat
-    capacity: xlarge
-    hidden_dim: 256
-    num_layers: 4
-    conditioning: concat
+  #- name: xlarge_concat
+  #  capacity: xlarge
+  #  hidden_dim: 256
+  #  num_layers: 4
+  #  conditioning: concat
   
   - name: xlarge_film
     capacity: xlarge
@@ -60,4 +60,5 @@ fixed:
   num_iterations: 4000
   batch_size: 128
   learning_rate: 0.001
-  seeds: [42, 123, 456, 789, 1011]
+  seeds: [1011]
+  #seeds: [42, 123, 456, 789, 1011]
