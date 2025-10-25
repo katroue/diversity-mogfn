@@ -1,0 +1,546 @@
+experiment_name: loss_ablation
+study_type: ablation
+fixed_config: &id017
+  task: hypergrid
+  grid_size:
+  - 32
+  - 32
+  capacity: medium
+  arch_type: film
+  hidden_dim: 128
+  num_layers: 4
+  activation: relu
+  preference_distribution: dirichlet
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_schedule: uniform
+  num_iterations: 4000
+  batch_size: 128
+  optimizer: adam
+  learning_rate: 0.001
+  lr_schedule: constant
+  gradient_clip: 10.0
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+  num_seeds: 5
+  base_seed: 42
+  seeds:
+  - 42
+  - 153
+  - 264
+  - 375
+  - 486
+ablation_factors:
+  base_loss:
+    description: Core GFlowNet training objective
+    options:
+    - name: trajectory_balance
+      label: TB
+      type: trajectory_balance
+      params: &id001
+        log_reward_clip: 10.0
+    - name: detailed_balance
+      label: DB
+      type: detailed_balance
+      params: &id002
+        log_reward_clip: 10.0
+    - name: subtrajectory_balance_05
+      label: "SubTB(\u03BB=0.5)"
+      type: subtrajectory_balance
+      params: &id003
+        lambda_: 0.5
+        log_reward_clip: 10.0
+    - name: subtrajectory_balance_09
+      label: "SubTB(\u03BB=0.9)"
+      type: subtrajectory_balance
+      params: &id004
+        lambda_: 0.9
+        log_reward_clip: 10.0
+    - name: subtrajectory_balance_095
+      label: "SubTB(\u03BB=0.95)"
+      type: subtrajectory_balance
+      params: &id005
+        lambda_: 0.95
+        log_reward_clip: 10.0
+    - name: flow_matching
+      label: FM
+      type: flow_matching
+      params: &id006
+        log_reward_clip: 10.0
+  regularization:
+    description: Additional terms added to base loss
+    options:
+    - name: none
+      label: No Reg
+      type: none
+      params: &id007 {}
+    - name: entropy_001
+      label: "Entropy(\u03B2=0.01)"
+      type: entropy
+      params: &id008
+        beta: 0.01
+        entropy_type: policy
+    - name: entropy_005
+      label: "Entropy(\u03B2=0.05)"
+      type: entropy
+      params: &id009
+        beta: 0.05
+        entropy_type: policy
+    - name: entropy_01
+      label: "Entropy(\u03B2=0.1)"
+      type: entropy
+      params: &id010
+        beta: 0.1
+        entropy_type: policy
+    - name: entropy_05
+      label: "Entropy(\u03B2=0.5)"
+      type: entropy
+      params: &id011
+        beta: 0.5
+        entropy_type: policy
+    - name: kl_uniform_001
+      label: "KL-Uniform(\u03B2=0.01)"
+      type: kl_divergence
+      params: &id012
+        beta: 0.01
+        target: uniform
+    - name: kl_uniform_01
+      label: "KL-Uniform(\u03B2=0.1)"
+      type: kl_divergence
+      params: &id013
+        beta: 0.1
+        target: uniform
+  modifications:
+    description: Modifications to loss computation
+    options:
+    - name: standard
+      label: Standard
+      type: none
+      params: &id014 {}
+    - name: temperature_scaled_logits
+      label: "Temp-Scale(\u03C4=2.0)"
+      type: temperature_scaling
+      params: &id015
+        temperature: 2.0
+        apply_to: logits
+    - name: reward_shaping_diversity
+      label: "Reward-Shape(\u03B3=0.1)"
+      type: reward_shaping
+      params: &id016
+        gamma: 0.1
+        shaping_type: diversity_bonus
+        diversity_metric: novelty
+experiments:
+- name: base_loss_comparison_trajectory_balance
+  group: base_loss_comparison
+  description: Compare base losses without any regularization - trajectory_balance
+  regularization: none
+  modifications: standard
+  base_loss: trajectory_balance
+  base_loss_type: trajectory_balance
+  base_loss_params: *id001
+  base_loss_label: TB
+- name: base_loss_comparison_detailed_balance
+  group: base_loss_comparison
+  description: Compare base losses without any regularization - detailed_balance
+  regularization: none
+  modifications: standard
+  base_loss: detailed_balance
+  base_loss_type: detailed_balance
+  base_loss_params: *id002
+  base_loss_label: DB
+- name: base_loss_comparison_subtrajectory_balance_05
+  group: base_loss_comparison
+  description: Compare base losses without any regularization - subtrajectory_balance_05
+  regularization: none
+  modifications: standard
+  base_loss: subtrajectory_balance_05
+  base_loss_type: subtrajectory_balance
+  base_loss_params: *id003
+  base_loss_label: "SubTB(\u03BB=0.5)"
+- name: base_loss_comparison_subtrajectory_balance_09
+  group: base_loss_comparison
+  description: Compare base losses without any regularization - subtrajectory_balance_09
+  regularization: none
+  modifications: standard
+  base_loss: subtrajectory_balance_09
+  base_loss_type: subtrajectory_balance
+  base_loss_params: *id004
+  base_loss_label: "SubTB(\u03BB=0.9)"
+- name: base_loss_comparison_subtrajectory_balance_095
+  group: base_loss_comparison
+  description: Compare base losses without any regularization - subtrajectory_balance_095
+  regularization: none
+  modifications: standard
+  base_loss: subtrajectory_balance_095
+  base_loss_type: subtrajectory_balance
+  base_loss_params: *id005
+  base_loss_label: "SubTB(\u03BB=0.95)"
+- name: base_loss_comparison_flow_matching
+  group: base_loss_comparison
+  description: Compare base losses without any regularization - flow_matching
+  regularization: none
+  modifications: standard
+  base_loss: flow_matching
+  base_loss_type: flow_matching
+  base_loss_params: *id006
+  base_loss_label: FM
+- name: entropy_regularization_none
+  group: entropy_regularization
+  description: "Test entropy regularization with different \u03B2 values - none"
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: none
+  regularization_type: none
+  regularization_params: *id007
+  regularization_label: No Reg
+- name: entropy_regularization_entropy_001
+  group: entropy_regularization
+  description: "Test entropy regularization with different \u03B2 values - entropy_001"
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: entropy_001
+  regularization_type: entropy
+  regularization_params: *id008
+  regularization_label: "Entropy(\u03B2=0.01)"
+- name: entropy_regularization_entropy_005
+  group: entropy_regularization
+  description: "Test entropy regularization with different \u03B2 values - entropy_005"
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: entropy_005
+  regularization_type: entropy
+  regularization_params: *id009
+  regularization_label: "Entropy(\u03B2=0.05)"
+- name: entropy_regularization_entropy_01
+  group: entropy_regularization
+  description: "Test entropy regularization with different \u03B2 values - entropy_01"
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: entropy_01
+  regularization_type: entropy
+  regularization_params: *id010
+  regularization_label: "Entropy(\u03B2=0.1)"
+- name: entropy_regularization_entropy_05
+  group: entropy_regularization
+  description: "Test entropy regularization with different \u03B2 values - entropy_05"
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: entropy_05
+  regularization_type: entropy
+  regularization_params: *id011
+  regularization_label: "Entropy(\u03B2=0.5)"
+- name: kl_regularization_none
+  group: kl_regularization
+  description: Test KL divergence to uniform policy - none
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: none
+  regularization_type: none
+  regularization_params: *id007
+  regularization_label: No Reg
+- name: kl_regularization_kl_uniform_001
+  group: kl_regularization
+  description: Test KL divergence to uniform policy - kl_uniform_001
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: kl_uniform_001
+  regularization_type: kl_divergence
+  regularization_params: *id012
+  regularization_label: "KL-Uniform(\u03B2=0.01)"
+- name: kl_regularization_kl_uniform_01
+  group: kl_regularization
+  description: Test KL divergence to uniform policy - kl_uniform_01
+  base_loss: trajectory_balance
+  modifications: standard
+  regularization: kl_uniform_01
+  regularization_type: kl_divergence
+  regularization_params: *id013
+  regularization_label: "KL-Uniform(\u03B2=0.1)"
+- name: subtb_entropy_sweep_none
+  group: subtb_entropy_sweep
+  description: Test SubTB(0.9) with different entropy regularization - none
+  base_loss: subtrajectory_balance_09
+  modifications: standard
+  regularization: none
+  regularization_type: none
+  regularization_params: *id007
+  regularization_label: No Reg
+- name: subtb_entropy_sweep_entropy_001
+  group: subtb_entropy_sweep
+  description: Test SubTB(0.9) with different entropy regularization - entropy_001
+  base_loss: subtrajectory_balance_09
+  modifications: standard
+  regularization: entropy_001
+  regularization_type: entropy
+  regularization_params: *id008
+  regularization_label: "Entropy(\u03B2=0.01)"
+- name: subtb_entropy_sweep_entropy_005
+  group: subtb_entropy_sweep
+  description: Test SubTB(0.9) with different entropy regularization - entropy_005
+  base_loss: subtrajectory_balance_09
+  modifications: standard
+  regularization: entropy_005
+  regularization_type: entropy
+  regularization_params: *id009
+  regularization_label: "Entropy(\u03B2=0.05)"
+- name: subtb_entropy_sweep_entropy_01
+  group: subtb_entropy_sweep
+  description: Test SubTB(0.9) with different entropy regularization - entropy_01
+  base_loss: subtrajectory_balance_09
+  modifications: standard
+  regularization: entropy_01
+  regularization_type: entropy
+  regularization_params: *id010
+  regularization_label: "Entropy(\u03B2=0.1)"
+- name: loss_modifications_standard
+  group: loss_modifications
+  description: Test modifications on best base+reg combination - standard
+  base_loss: trajectory_balance
+  regularization: entropy_005
+  modifications: standard
+  modifications_type: none
+  modifications_params: *id014
+  modifications_label: Standard
+- name: loss_modifications_temperature_scaled_logits
+  group: loss_modifications
+  description: Test modifications on best base+reg combination - temperature_scaled_logits
+  base_loss: trajectory_balance
+  regularization: entropy_005
+  modifications: temperature_scaled_logits
+  modifications_type: temperature_scaling
+  modifications_params: *id015
+  modifications_label: "Temp-Scale(\u03C4=2.0)"
+- name: loss_modifications_reward_shaping_diversity
+  group: loss_modifications
+  description: Test modifications on best base+reg combination - reward_shaping_diversity
+  base_loss: trajectory_balance
+  regularization: entropy_005
+  modifications: reward_shaping_diversity
+  modifications_type: reward_shaping
+  modifications_params: *id016
+  modifications_label: "Reward-Shape(\u03B3=0.1)"
+metrics:
+  training:
+  - loss_total
+  - loss_base
+  - loss_regularization
+  - gradient_norm
+  - learning_rate
+  evaluation:
+  - avg_pairwise_distance
+  - min_pairwise_distance
+  - std_pairwise_distance
+  - hypervolume
+  - r2_indicator
+  - pareto_front_size
+  - trajectory_diversity_score
+  - mode_coverage_entropy
+  - pairwise_minimum_distance
+  - preference_aligned_spread
+  - pareto_front_smoothness
+  - conditional_entropy
+  - flow_concentration_index
+  - multi_path_diversity
+  - diversity_velocity
+  - mode_discovery_rate
+  - quality_diversity_score
+  - diversity_efficiency_ratio
+  final:
+  - all_evaluation_metrics
+  - solution_histogram
+  - objective_space_plot
+  - trajectory_length_distribution
+  - state_visitation_histogram
+analysis:
+  statistical_tests:
+  - name: base_loss_effect
+    test: one_way_anova
+    groups:
+    - base_loss
+    metric: mode_coverage_entropy
+    posthoc: tukey_hsd
+    alpha: 0.05
+  - name: base_loss_effect_size
+    test: cohens_d
+    comparisons: all_pairs
+    metric: mode_coverage_entropy
+  - name: regularization_effect
+    test: one_way_anova
+    groups:
+    - regularization
+    metric: mode_coverage_entropy
+  - name: quality_diversity_tradeoff
+    test: correlation
+    x_metric: hypervolume
+    y_metric: mode_coverage_entropy
+    method: pearson
+  visualizations:
+  - name: loss_comparison_boxplot
+    type: boxplot
+    x: base_loss
+    y: mode_coverage_entropy
+    hue: null
+    save: figures/loss_comparison.pdf
+  - name: regularization_effect
+    type: barplot
+    x: regularization
+    y: mode_coverage_entropy
+    save: figures/regularization_effect.pdf
+  - name: quality_diversity_scatter
+    type: scatter
+    x: hypervolume
+    y: mode_coverage_entropy
+    hue: base_loss
+    save: figures/quality_diversity_tradeoff.pdf
+  - name: diversity_evolution
+    type: lineplot
+    x: iteration
+    y: mode_coverage_entropy
+    hue: base_loss
+    save: figures/diversity_evolution.pdf
+  - name: loss_components_heatmap
+    type: heatmap
+    pivot:
+      index: base_loss
+      columns: regularization
+      values: mode_coverage_entropy
+    save: figures/loss_components_heatmap.pdf
+hypotheses:
+  h1:
+    statement: "SubTB(\u03BB=0.9) produces higher diversity than TB, FM, or DB"
+    prediction: SubTB(0.9) MCE > TB MCE by at least 15%
+    rationale: SubTB interpolates between local and global credit assignment
+  h2:
+    statement: Entropy regularization significantly increases diversity
+    prediction: "entropy(\u03B2=0.05) increases MCE by 20-30%"
+    rationale: Encourages policy exploration
+  h3:
+    statement: Too much regularization hurts quality
+    prediction: "entropy(\u03B2=0.5) reduces hypervolume by >10%"
+    rationale: Over-regularization reduces focus on high-reward regions
+  h4:
+    statement: "SubTB(0.9) + entropy(\u03B2=0.05) is optimal combination"
+    prediction: Highest QDS score (balanced quality-diversity)
+    rationale: SubTB provides good credit assignment, entropy adds exploration
+  h5:
+    statement: Loss function effects are independent of capacity/sampling
+    prediction: Ranking of losses consistent across different model sizes
+    rationale: Loss affects optimization dynamics universally
+resources:
+  compute:
+    platform: slurm_cluster
+    gpu_type: nvidia_rtx3090
+    num_gpus_per_job: 1
+    max_parallel_jobs: 10
+  storage:
+    base_dir: ./experiments/loss_ablation
+    structure:
+      logs: logs/
+      checkpoints: checkpoints/
+      results: results/
+      figures: figures/
+  time_estimates:
+    per_run: 24 minutes
+    per_config: 2 hours
+    total: 70 hours
+    with_parallelization: 7 hours
+execution:
+  priority:
+  - group: base_loss_comparison
+  - group: entropy_regularization
+  - group: kl_regularization
+  - group: subtb_entropy_sweep
+  - group: loss_modifications
+  parallelization:
+    strategy: seed_parallel
+    max_parallel: 10
+  checkpointing:
+    save_every: 1000
+    keep_last_n: 3
+  logging:
+    wandb:
+      enabled: true
+      project: diversity-mogfn
+      entity: your-team
+      tags:
+      - loss_ablation
+      - hypergrid
+      - week5
+    local:
+      log_level: INFO
+      save_plots: true
+      save_samples: true
+success_criteria:
+  minimum:
+  - All 35 configurations run successfully
+  - At least 4/5 seeds complete per configuration
+  - Statistical significance (p < 0.05) detected for at least 2 factors
+  good:
+  - Clear ranking of loss functions established
+  - Optimal regularization strength identified
+  - Quality-diversity tradeoff quantified
+  - All metrics computed successfully
+  excellent:
+  - Novel insights discovered (e.g., unexpected interactions)
+  - Best loss configuration improves diversity by >25% over baseline
+  - Findings consistent with theoretical predictions
+  - Results inform factorial experiments
+notes:
+  important:
+  - Run Group 1 (base_loss_comparison) FIRST - results inform later groups
+  - Update 'best base loss' in Groups 2-5 based on Group 1 results
+  - If TB and SubTB(0.9) are close, run both in later groups
+  - Monitor training stability - some loss combinations may diverge
+  tips:
+  - Use early stopping if loss explodes (gradient_norm > 100)
+  - Save samples at iterations [1000, 2000, 3000, 4000] for analysis
+  - Generate GIFs showing diversity evolution over training
+  - Track temperature of policy (entropy) over training
+  known_issues:
+  - DB can be unstable on hypergrid - increase gradient clipping if needed
+  - "Very high entropy regularization (\u03B2 > 0.5) may prevent convergence"
+  - Reward shaping may need task-specific tuning
+  adaptive_strategy:
+  - If Group 1 shows TB >> SubTB, focus Groups 2-4 on TB only
+  - "If entropy clearly helps, expand Group 2 to test \u03B2 \u2208 [0.001, 1.0]"
+  - If no regularization helps, investigate why (mode collapse?)
+deliverables:
+  week_5:
+  - results/loss_ablation_summary.csv
+  - figures/loss_comparison.pdf
+  - figures/quality_diversity_tradeoff.pdf
+  - figures/regularization_effect.pdf
+  - analysis/statistical_tests.txt
+  - analysis/best_configuration.yaml
+  paper_draft:
+    section: 5.2.3 Loss Function Effects
+    figures:
+    - 'Figure 5: Quality-diversity tradeoff for different losses'
+    tables:
+    - 'Table X: Loss function comparison (all metrics)'
+    key_findings:
+    - Best base loss identified
+    - Optimal regularization strength
+    - Effect sizes quantified
+integration:
+  from_previous_ablations:
+    capacity_ablation:
+      winner: film_medium_64
+      use_in: fixed_config.capacity
+    sampling_ablation:
+      winner: dirichlet_1.5
+      use_in: fixed_config.dirichlet_alpha
+  to_factorial_experiments:
+    export:
+    - best_base_loss
+    - best_regularization
+    - best_modification
+    use_in: factorial_experiments/configs/loss_factor.yaml
+  expected_outcome:
+    best_loss: subtrajectory_balance_09
+    best_regularization: entropy_005
+    best_modification: standard
+    combined: "SubTB(0.9) + entropy(\u03B2=0.05)"
+fixed: *id017

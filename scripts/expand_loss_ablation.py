@@ -16,7 +16,7 @@ This script converts it to a flat structure expected by run_ablation_study.py:
       ...
 
 Usage:
-    python scripts/expand_loss_ablation.py --input experiments/configs/ablations/loss_ablation.yaml --output experiments/configs/ablations/loss_ablation_FLAT.yaml
+    python scripts/expand_loss_ablation.py --input configs/ablations/loss_ablation.yaml --output configs/ablations/loss_ablation_final.yaml
 """
 
 import yaml

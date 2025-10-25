@@ -8,48 +8,21 @@ for systematic ablation studies.
 Usage:
     # Capacity ablation
     python scripts/run_ablation_study.py \
-        --config experiments/configs/ablations/capacity_ablation.yaml \
+        --config configs/ablations/capacity_ablation.yaml \
         --ablation capacity \
         --output_dir results/ablations/capacity
     
     # Sampling ablation
     python scripts/run_ablation_study.py \
-        --config experiments/configs/ablations/sampling_ablation.yaml \
+        --config configs/ablations/sampling_ablation.yaml \
         --ablation sampling \
         --output_dir results/ablations/sampling
     
     # Loss ablation
     python scripts/run_ablation_study.py \
-        --config experiments/configs/ablations/loss_ablation_final.yaml \
+        --config configs/ablations/loss_ablation_final.yaml \
         --ablation loss \
         --output_dir results/ablations/loss
-
-        error : 
-        ======================================================================
-Summary Statistics
-======================================================================
-       hypervolume  r2_indicator  avg_pairwise_distance    spacing     spread        tds        mpd  ...  num_parameters  training_time  final_loss         seed  hidden_dim  num_layers  alpha
-count    20.000000     20.000000              20.000000  20.000000  20.000000  20.000000  20.000000  ...        20.00000      20.000000   20.000000    20.000000   20.000000        20.0   20.0
-mean      1.167982     -0.268905               0.097857   0.092048   1.765427   0.398205   1.376384  ...    168455.00000    4925.058449    0.009285   484.200000  192.000000         4.0    1.5
-std       0.005461      0.000629               0.020825   0.016178   0.026584   0.020047   0.256452  ...    102437.04593    1471.600572    0.016425   383.123671   65.662615         0.0    0.0
-min       1.144780     -0.270054               0.066391   0.070613   1.716930   0.370819   0.980660  ...     68103.00000    3447.753651    0.001269    42.000000  128.000000         4.0    1.5
-25%       1.169203     -0.269197               0.088549   0.083206   1.741712   0.383623   1.167230  ...     68871.00000    3595.159806    0.003511   123.000000  128.000000         4.0    1.5
-50%       1.169203     -0.268910               0.098089   0.090557   1.774764   0.392712   1.358576  ...    168199.00000    4074.331883    0.004960   456.000000  192.000000         4.0    1.5
-75%       1.169203     -0.268563               0.106312   0.094709   1.783915   0.412581   1.506981  ...    267783.00000    6168.718794    0.006433   789.000000  256.000000         4.0    1.5
-max       1.169203     -0.267733               0.163940   0.136717   1.805486   0.433809   1.969361  ...    269319.00000    7516.290520    0.077201  1011.000000  256.000000         4.0    1.5
-
-[8 rows x 23 columns]
-Traceback (most recent call last):
-  File "/Users/katherinedemers/Documents/GitHub/diversity-mogfn/scripts/run_ablation_study.py", line 531, in <module>
-    
-    ^
-  File "/Users/katherinedemers/Documents/GitHub/diversity-mogfn/scripts/run_ablation_study.py", line 519, in main
-    )
-     
-  File "/Users/katherinedemers/Documents/GitHub/diversity-mogfn/scripts/run_ablation_study.py", line 420, in create_summary_report
-    print(results_df.describe())
-^^^^^^^^^^^^^^^^^^^^^
-ModuleNotFoundError: No module named 'seaborn'
 
 """
 import sys
@@ -455,54 +428,56 @@ def run_ablation_study(config_path: str,
         return pd.DataFrame()
 
 
-def create_summary_report(results_df: pd.DataFrame, 
-                        ablation_type: str,
-                        output_dir: Path):
-    """Create summary report with visualizations."""
-    import matplotlib.pyplot as plt
-    import seaborn as sns
-    
-    print("\n" + "="*70)
-    print("Creating Summary Report")
-    print("="*70)
-    
-    report_dir = output_dir / 'report'
-    report_dir.mkdir(exist_ok=True)
-    
-    # Summary statistics by configuration
-    if ablation_type == 'capacity':
-        group_by = 'capacity'
-    elif ablation_type == 'sampling':
-        group_by = 'alpha'
-    elif ablation_type == 'loss':
-        group_by = 'loss'
-    else:
-        group_by = 'exp_name'
-    
-    # Aggregate metrics
-    metrics_of_interest = ['hypervolume', 'tds', 'mce', 'pmd', 'qds', 'der']
-    
-    summary = results_df.groupby(group_by)[metrics_of_interest].agg(['mean', 'std'])
-    summary.to_csv(report_dir / 'summary_statistics.csv')
-    
-    print(f"✓ Summary statistics saved to {report_dir / 'summary_statistics.csv'}")
-    
-    # Create visualizations
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
-    axes = axes.flatten()
-    
-    for i, metric in enumerate(metrics_of_interest):
-        if metric in results_df.columns:
-            sns.boxplot(data=results_df, x=group_by, y=metric, ax=axes[i])
-            axes[i].set_title(metric.upper())
-            axes[i].set_xlabel(group_by.capitalize())
-            axes[i].tick_params(axis='x', rotation=45)
-    
-    plt.tight_layout()
-    plt.savefig(report_dir / 'metrics_comparison.pdf', dpi=300, bbox_inches='tight')
-    plt.close()
-    
-    print(f"✓ Visualizations saved to {report_dir / 'metrics_comparison.pdf'}")
+def create_summary_report(results_df: pd.DataFrame, output_dir: Path) -> None:
+    """
+    Génère des rapports sommaires et CSV groupés.
+    Écrit :
+      - all_results.csv (raw)
+      - summary_by_capacity.csv
+      - summary_by_conditioning.csv
+      - summary_by_capacity_and_conditioning.csv
+      - overall_summary.csv (describe)
+    """
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Sauvegarde brute
+    results_df.to_csv(output_dir / 'all_results.csv', index=False)
+
+    # S'assurer que les colonnes de groupement existent
+    for col in ('capacity', 'conditioning'):
+        if col not in results_df.columns:
+            results_df[col] = np.nan
+
+    # Sélection des colonnes numériques pour l'agrégation
+    numeric_cols = results_df.select_dtypes(include=[np.number]).columns.tolist()
+    if not numeric_cols:
+        # Rien à agréger : on sauvegarde juste le dataframe complet et on sort
+        results_df.to_csv(output_dir / 'all_results_no_numeric.csv', index=False)
+        return
+
+    def _agg_and_save(df, groupby_cols, out_name):
+        grp = df.groupby(groupby_cols)[numeric_cols].agg(['mean', 'std', 'count'])
+        # Aplatir les MultiIndex de colonnes
+        grp.columns = ['_'.join(map(str, c)).strip() for c in grp.columns.values]
+        grp = grp.reset_index()
+        grp.to_csv(output_dir / out_name, index=False)
+
+    # Groupements demandés
+    _agg_and_save(results_df, 'capacity', 'summary_by_capacity.csv')
+    _agg_and_save(results_df, 'conditioning', 'summary_by_conditioning.csv')
+    _agg_and_save(results_df, ['capacity', 'conditioning'], 'summary_by_capacity_and_conditioning.csv')
+
+    # Résumé global (describe) — convertir en DF et sauver
+    overall = results_df.describe(include='all')
+    try:
+        overall_df = overall.transpose().reset_index().rename(columns={'index': 'metric'})
+        overall_df.to_csv(output_dir / 'overall_summary.csv', index=False)
+    except Exception:
+        # Si describe renvoie des types non sérialisables, sauvegarder la version simple
+        results_df[numeric_cols].describe().transpose().reset_index().to_csv(
+            output_dir / 'overall_summary_numeric.csv', index=False
+        )
 
 
 def main():

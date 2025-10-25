@@ -309,7 +309,7 @@ class MOGFN_PC(BaseGFlowNet):
         """
         Compute scalarized reward using preference vector.
         
-        R(x|ω) = (Σ ωᵢ * Rᵢ(x))^β
+        R(x|ω) = (Σ ωᵢ * Rᵢ(x))^β, best performance according to the original paper
         
         Args:
             objectives: Objective values, shape (num_objectives,)
