@@ -17,7 +17,7 @@ fixed_config: &id017
   num_iterations: 4000
   batch_size: 128
   optimizer: adam
-  learning_rate: 0.001
+  learning_rate: 0.01
   lr_schedule: constant
   gradient_clip: 10.0
   eval_every: 500

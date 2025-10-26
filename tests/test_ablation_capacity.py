@@ -4,15 +4,13 @@ Comprehensive test script to debug all metrics without running full ablation.
 Tests: Traditional, Trajectory, Spatial, Objective, Composite, Dynamics, and Flow metrics.
 """
 import sys
-sys.path.append('/Users/katherinedemers/Documents/GitHub/diversity-mogfn')
-
 import torch
 import numpy as np
 from pathlib import Path
 
-# Add src to path
-project_root = Path('/Users/katherinedemers/Documents/GitHub/diversity-mogfn')
-sys.path.insert(0, str(project_root / 'src'))
+# Add project root to path for src imports
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
 from src.models.mogfn_pc import MOGFN_PC, PreferenceSampler, MOGFNTrainer
 from src.environments.hypergrid import HyperGrid

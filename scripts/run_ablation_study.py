@@ -26,8 +26,6 @@ Usage:
 
 """
 import sys
-sys.path.append('/Users/katherinedemers/Documents/GitHub/diversity-mogfn')
-
 import argparse
 import yaml
 import os
@@ -40,9 +38,9 @@ from tqdm import tqdm
 import json
 import torch
 
-# Add src to path
+# Add project root to path for src imports
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / 'src'))
+sys.path.insert(0, str(project_root))
 
 from src.models.mogfn_pc import MOGFN_PC, PreferenceSampler, MOGFNTrainer
 from src.environments.hypergrid import HyperGrid
@@ -53,6 +51,7 @@ from src.metrics.objective import preference_aligned_spread, pareto_front_smooth
 from src.metrics.dynamics import replay_buffer_diversity
 from src.metrics.flow import flow_concentration_index
 from src.metrics.composite import quality_diversity_score, diversity_efficiency_ratio
+from src.utils.tensor_utils import to_numpy, to_hashable
 
 
 def load_config(config_path: str) -> dict:
@@ -165,12 +164,9 @@ def run_single_experiment(exp_config: dict,
     
     objectives_tensor = eval_results['objectives']
     preferences_tensor = eval_results['preferences']
-    
-    # FIXED: Keep tensors for PyTorch operations, convert to numpy only for metrics
-    if isinstance(objectives_tensor, torch.Tensor):
-        objectives = objectives_tensor.detach().cpu().numpy()
-    else:
-        objectives = objectives_tensor
+
+    # Convert to numpy for metrics computation
+    objectives = to_numpy(objectives_tensor)
     
     # Compute all metrics
     print("Computing metrics...")
@@ -234,11 +230,8 @@ def run_single_experiment(exp_config: dict,
     state_visits = {}
     for traj in trajectories:
         for state in traj.states:
-            # FIXED: Handle both tensor and numpy array states
-            if isinstance(state, torch.Tensor):
-                state_key = tuple(state.detach().cpu().numpy().flatten())
-            else:
-                state_key = tuple(np.array(state).flatten())
+            # Convert state to hashable key
+            state_key = to_hashable(state)
             state_visits[state_key] = state_visits.get(state_key, 0) + 1
     metrics['fci'] = flow_concentration_index(state_visits)
     
@@ -288,12 +281,9 @@ def run_single_experiment(exp_config: dict,
     with open(exp_dir / 'metrics.json', 'w') as f:
         json.dump(metrics, f, indent=2)
     
-    # FIXED: Convert preferences tensor to numpy for saving
-    if isinstance(preferences_tensor, torch.Tensor):
-        preferences_numpy = preferences_tensor.detach().cpu().numpy()
-    else:
-        preferences_numpy = preferences_tensor
-    
+    # Convert preferences to numpy for saving
+    preferences_numpy = to_numpy(preferences_tensor)
+
     # Save objectives and preferences
     np.save(exp_dir / 'objectives.npy', objectives)
     np.save(exp_dir / 'preferences.npy', preferences_numpy)
