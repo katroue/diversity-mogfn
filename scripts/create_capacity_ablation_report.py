@@ -7,13 +7,8 @@ for all metrics from the capacity ablation study, grouped by capacity and condit
 
 Usage:
     # Generate comprehensive report for capacity ablation
-    python scripts/create_comprehensive_report.py \
+    python scripts/create_capacity_ablation_report.py \
         --results_csv results/ablations/capacity/all_results.csv
-
-    # Specify custom output directory
-    python scripts/create_comprehensive_report.py \
-        --results_csv results/ablations/capacity/all_results.csv \
-        --output_dir results/custom_report
 """
 
 import sys
@@ -673,7 +668,7 @@ def main():
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='results/ablations/reports',
+        default='results/ablations/capacity/report',
         help='Output directory for comprehensive report'
     )
 
