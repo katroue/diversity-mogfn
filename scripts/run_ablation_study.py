@@ -116,7 +116,11 @@ def run_single_experiment(exp_config: dict,
         num_actions=env.num_actions,
         num_layers=config.get('num_layers', 3),
         preference_encoding=config.get('preference_encoding', 'vanilla'),
-        conditioning_type=config.get('conditioning', 'concat')
+        conditioning_type=config.get('conditioning', 'concat'),
+        temperature=config.get('temperature', 1.0),
+        sampling_strategy=config.get('sampling_strategy', 'categorical'),
+        top_k=config.get('top_k', None),
+        top_p=config.get('top_p', None)
     ).to(device)
     
     # Count parameters
@@ -126,8 +130,8 @@ def run_single_experiment(exp_config: dict,
     # Create preference sampler
     pref_sampler = PreferenceSampler(
         num_objectives=env.num_objectives,
-        distribution=config.get('preference_sampling', 'dirichlet'),
-        alpha=config.get('alpha', 1.5)
+        distribution=config.get('preference_distribution', 'dirichlet'),
+        alpha=config.get('dirichlet_alpha', 1.5)
     )
     
     # Create optimizer
@@ -142,7 +146,8 @@ def run_single_experiment(exp_config: dict,
         env=env,
         preference_sampler=pref_sampler,
         optimizer=optimizer,
-        beta=config.get('beta', 1.0)
+        beta=config.get('beta', 1.0),
+        off_policy_ratio=config.get('off_policy_ratio', 0.0)
     )
     
     # Training

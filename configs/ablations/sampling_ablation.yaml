@@ -13,7 +13,7 @@ fixed:
   
   # Training parameters (SAME AS CAPACITY ABLATION)
   num_iterations: 4000  # Same as capacity ablation (4000) for fair comparison, testing with 1000 iterations
-  batch_size: 128
+  batch_size: 128  # Default batch size (can be overridden per experiment)
   lr: 0.001
   
   # Evaluation

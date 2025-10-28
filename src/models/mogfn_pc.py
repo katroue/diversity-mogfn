@@ -197,7 +197,11 @@ class MOGFN_PC(BaseGFlowNet):
                 num_layers: int = 3,
                 preference_encoding: str = 'vanilla',
                 conditioning_type: str = 'concat',
-                exploration_rate: float = 0.1):
+                exploration_rate: float = 0.1,
+                temperature: float = 1.0,
+                sampling_strategy: str = 'categorical',
+                top_k: Optional[int] = None,
+                top_p: Optional[float] = None):
         """
         Args:
             state_dim: Dimension of state space
@@ -208,14 +212,22 @@ class MOGFN_PC(BaseGFlowNet):
             preference_encoding: 'vanilla' or 'thermometer'
             conditioning_type: 'concat' or 'film'
             exploration_rate: Epsilon for exploration
+            temperature: Temperature for softmax (higher = more random)
+            sampling_strategy: 'greedy', 'categorical', 'top_k', or 'nucleus'
+            top_k: Number of top actions to sample from (for top_k strategy)
+            top_p: Probability mass to sample from (for nucleus strategy)
         """
         # Don't call super().__init__ since we're replacing the networks
         nn.Module.__init__(self)
-        
+
         self.state_dim = state_dim
         self.num_objectives = num_objectives
         self.num_actions = num_actions
         self.exploration_rate = exploration_rate
+        self.temperature = temperature
+        self.sampling_strategy = sampling_strategy
+        self.top_k = top_k
+        self.top_p = top_p
         
         # Preference encoder
         self.preference_encoder = PreferenceEncoder(
@@ -295,10 +307,62 @@ class MOGFN_PC(BaseGFlowNet):
                 valid_actions = list(range(self.num_actions))
             action = torch.tensor(valid_actions[torch.randint(len(valid_actions), (1,)).item()])
         else:
-            probs = F.softmax(logits, dim=-1)
-            action = torch.multinomial(probs, 1).squeeze()
-        
-        log_prob = F.log_softmax(logits, dim=-1)[action]
+            # Apply temperature and use specified sampling strategy
+            if self.sampling_strategy == 'greedy':
+                # Greedy: select action with highest logit
+                action = torch.argmax(logits)
+
+            elif self.sampling_strategy == 'categorical':
+                # Categorical: sample from softmax distribution with temperature
+                probs = F.softmax(logits / self.temperature, dim=-1)
+                action = torch.multinomial(probs, 1).squeeze()
+
+            elif self.sampling_strategy == 'top_k':
+                # Top-k: sample from top-k actions
+                if self.top_k is not None and self.top_k > 0:
+                    top_k = min(self.top_k, logits.size(-1))
+                    top_k_logits, top_k_indices = torch.topk(logits, top_k)
+                    probs = F.softmax(top_k_logits / self.temperature, dim=-1)
+                    action_idx = torch.multinomial(probs, 1).squeeze()
+                    action = top_k_indices[action_idx]
+                else:
+                    # Fallback to categorical if top_k not specified
+                    probs = F.softmax(logits / self.temperature, dim=-1)
+                    action = torch.multinomial(probs, 1).squeeze()
+
+            elif self.sampling_strategy == 'nucleus':
+                # Nucleus (top-p): sample from cumulative probability mass
+                if self.top_p is not None and 0 < self.top_p < 1:
+                    probs = F.softmax(logits / self.temperature, dim=-1)
+                    sorted_probs, sorted_indices = torch.sort(probs, descending=True)
+                    cumulative_probs = torch.cumsum(sorted_probs, dim=-1)
+
+                    # Find cutoff index where cumulative prob exceeds top_p
+                    cutoff_idx = torch.where(cumulative_probs > self.top_p)[0]
+                    if len(cutoff_idx) > 0:
+                        cutoff_idx = cutoff_idx[0].item() + 1
+                    else:
+                        cutoff_idx = len(sorted_probs)
+
+                    # Keep only top-p probability mass
+                    nucleus_probs = sorted_probs[:cutoff_idx]
+                    nucleus_indices = sorted_indices[:cutoff_idx]
+                    nucleus_probs = nucleus_probs / nucleus_probs.sum()  # Renormalize
+
+                    action_idx = torch.multinomial(nucleus_probs, 1).squeeze()
+                    action = nucleus_indices[action_idx]
+                else:
+                    # Fallback to categorical if top_p not specified
+                    probs = F.softmax(logits / self.temperature, dim=-1)
+                    action = torch.multinomial(probs, 1).squeeze()
+
+            else:
+                # Default to categorical
+                probs = F.softmax(logits / self.temperature, dim=-1)
+                action = torch.multinomial(probs, 1).squeeze()
+
+        # Compute log probability with temperature applied
+        log_prob = F.log_softmax(logits / self.temperature, dim=-1)[action]
         
         return action.item(), log_prob
     
@@ -490,14 +554,23 @@ class PreferenceSampler:
 
 class MOGFNSampler:
     """Sampler for multi-objective GFlowNet."""
-    
+
     def __init__(self,
                 mogfn: MOGFN_PC,
                 env: MultiObjectiveEnvironment,
-                preference_sampler: PreferenceSampler):
+                preference_sampler: PreferenceSampler,
+                off_policy_ratio: float = 0.0):
+        """
+        Args:
+            mogfn: MOGFN-PC model
+            env: Multi-objective environment
+            preference_sampler: Preference sampler
+            off_policy_ratio: Probability of sampling random actions (off-policy)
+        """
         self.mogfn = mogfn
         self.env = env
         self.preference_sampler = preference_sampler
+        self.off_policy_ratio = off_policy_ratio
     
     def sample_trajectory(self, 
                         preference: torch.Tensor,
@@ -524,11 +597,19 @@ class MOGFNSampler:
         # Sample until terminal
         while not is_terminal:
             valid_actions = self.env.get_valid_actions(state)
-            
-            # Sample action conditioned on preference
-            action, log_prob = self.mogfn.sample_action(
-                state, preference, valid_actions, explore=explore
-            )
+
+            # Off-policy exploration: with probability off_policy_ratio, sample uniformly random action
+            if self.off_policy_ratio > 0 and torch.rand(1).item() < self.off_policy_ratio:
+                # Sample uniform random action from valid actions
+                action = valid_actions[torch.randint(len(valid_actions), (1,)).item()]
+                # Compute log probability for this action under current policy
+                logits = self.mogfn.forward_logits(state, preference)
+                log_prob = torch.nn.functional.log_softmax(logits / self.mogfn.temperature, dim=-1)[action]
+            else:
+                # Sample action conditioned on preference (on-policy)
+                action, log_prob = self.mogfn.sample_action(
+                    state, preference, valid_actions, explore=explore
+                )
             
             # Take step
             next_state, is_terminal = self.env.step(state, action)
@@ -590,7 +671,8 @@ class MOGFNTrainer:
                 env: MultiObjectiveEnvironment,
                 preference_sampler: PreferenceSampler,
                 optimizer: torch.optim.Optimizer,
-                beta: float = 1.0):
+                beta: float = 1.0,
+                off_policy_ratio: float = 0.0):
         """
         Args:
             mogfn: MOGFN-PC model
@@ -598,10 +680,11 @@ class MOGFNTrainer:
             preference_sampler: Preference sampler
             optimizer: PyTorch optimizer
             beta: Reward exponent for scalarization
+            off_policy_ratio: Probability of sampling random actions (off-policy)
         """
         self.mogfn = mogfn
         self.env = env
-        self.sampler = MOGFNSampler(mogfn, env, preference_sampler)
+        self.sampler = MOGFNSampler(mogfn, env, preference_sampler, off_policy_ratio=off_policy_ratio)
         self.optimizer = optimizer
         self.beta = beta
         

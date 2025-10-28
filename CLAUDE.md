@@ -52,8 +52,13 @@ python scripts/run_ablation_study.py \
 ### Testing
 
 ```bash
-# Run single test experiment (fast, minimal iterations)
+# Test capacity ablation (fast, minimal iterations)
 python tests/test_ablation_capacity.py
+
+# Test sampling ablation with parameter fixes (validates that different configs produce different results)
+# Tests: temperature, sampling strategies, off-policy ratio, preference distribution
+# Runs 8 experiments × 500 iterations each (~5-10 minutes)
+python tests/test_sampling_ablation.py
 ```
 
 ### Post-Processing
@@ -76,6 +81,15 @@ python scripts/create_comprehensive_report.py \
 #   - summary_by_capacity_and_conditioning.csv
 #   - overall_summary.csv
 #   - capacity_detailed_results.csv
+
+# Analyze sampling ablation study (interactive Jupyter notebook)
+jupyter notebook create_sampling_ablation_report.ipynb
+# Analyzes 5 experiment types: temperature, strategies, policy, preference, batch size
+# Output: results/ablations/sampling/report/
+#   - Summary CSVs for each experiment type
+#   - Comparison visualizations (PNGs)
+#   - comprehensive_report.txt with recommendations
+#   - top_configurations_radar.png
 
 # Alternative: Create simple reports for individual ablation studies
 python scripts/create_summary_report.py \
