@@ -68,23 +68,27 @@ def hypervolume(objectives: np.ndarray,
 
 def _hypervolume_2d(objectives: np.ndarray, reference_point: np.ndarray) -> float:
     """Efficient 2D hypervolume computation."""
-    # Sort by first objective
+    # Sort by first objective (ascending)
     sorted_indices = np.argsort(objectives[:, 0])
     sorted_obj = objectives[sorted_indices]
-    
+
     hv = 0.0
-    prev_x = reference_point[0]
-    
+    prev_y = reference_point[1]  # Track the best (lowest) y-value seen so far
+
     for i in range(len(sorted_obj)):
         x, y = sorted_obj[i]
-        width = prev_x - x
-        height = reference_point[1] - y
-        
-        if width > 0 and height > 0:
-            hv += width * height
-        
-        prev_x = x
-    
+
+        # Only add contribution if this point improves on y (i.e., is non-dominated)
+        if y < prev_y:
+            width = reference_point[0] - x
+            height = prev_y - y
+
+            if width > 0 and height > 0:
+                hv += width * height
+
+            # Update the best y-value seen so far
+            prev_y = y
+
     return hv
 
 

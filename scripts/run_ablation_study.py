@@ -335,7 +335,8 @@ def run_ablation_study(config_path: str,
     # Get experiment configurations
     experiments = config['experiments']
     fixed_config = config.get('fixed', {})
-    seeds = fixed_config.get('seeds', [42, 123, 456, 789, 1011])
+    # Seeds can be at top level or in fixed config
+    seeds = config.get('seeds', fixed_config.get('seeds', [42, 123, 456, 789, 1011]))
     
     print(f"\n{'='*70}")
     print(f"Ablation Study: {ablation_type}")
@@ -348,13 +349,24 @@ def run_ablation_study(config_path: str,
     
     # Load existing results if resuming
     results_file = output_dir / 'all_results.csv'
-    if resume and results_file.exists():
-        print("Resuming from existing results...")
-        existing_df = pd.read_csv(results_file)
-        completed_experiments = set(existing_df['exp_name'].values)
-        print(f"Found {len(completed_experiments)} completed experiments")
-    else:
-        completed_experiments = set()
+    results_temp_file = output_dir / 'results_temp.csv'
+
+    completed_experiments = set()
+    if resume:
+        # Check for all_results.csv first (completed run)
+        if results_file.exists():
+            print("Resuming from existing results (all_results.csv)...")
+            existing_df = pd.read_csv(results_file)
+            completed_experiments = set(existing_df['exp_name'].values)
+            print(f"Found {len(completed_experiments)} completed experiments")
+        # If not, check for results_temp.csv (interrupted run)
+        elif results_temp_file.exists():
+            print("Resuming from temporary results (results_temp.csv)...")
+            existing_df = pd.read_csv(results_temp_file)
+            completed_experiments = set(existing_df['exp_name'].values)
+            print(f"Found {len(completed_experiments)} completed experiments from interrupted run")
+        else:
+            print("No existing results found, starting from scratch...")
     
     # Run all experiments
     all_results = []
@@ -399,27 +411,34 @@ def run_ablation_study(config_path: str,
     # Create final results DataFrame
     if all_results:
         results_df = pd.DataFrame(all_results)
-        
+
         # If resuming, merge with existing results
-        if resume and results_file.exists():
-            existing_df = pd.read_csv(results_file)
-            results_df = pd.concat([existing_df, results_df], ignore_index=True)
-        
+        if resume:
+            if results_file.exists():
+                existing_df = pd.read_csv(results_file)
+                results_df = pd.concat([existing_df, results_df], ignore_index=True)
+            elif results_temp_file.exists():
+                existing_df = pd.read_csv(results_temp_file)
+                results_df = pd.concat([existing_df, results_df], ignore_index=True)
+
         # Save final results
         results_df.to_csv(results_file, index=False)
         print(f"\n✓ All results saved to {results_file}")
-        
+
         # Print summary statistics
         print("\n" + "="*70)
         print("Summary Statistics")
         print("="*70)
         print(results_df.describe())
-        
+
         return results_df
     else:
         print("\n✗ No new results to save")
-        if resume and results_file.exists():
-            return pd.read_csv(results_file)
+        if resume:
+            if results_file.exists():
+                return pd.read_csv(results_file)
+            elif results_temp_file.exists():
+                return pd.read_csv(results_temp_file)
         return pd.DataFrame()
 
 

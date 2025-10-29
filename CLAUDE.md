@@ -64,6 +64,16 @@ python tests/test_sampling_ablation.py
 ### Post-Processing
 
 ```bash
+# Fix hypervolume metric (IMPORTANT: Run this if you have results from before the hypervolume bug fix)
+# The original hypervolume implementation had a bug where only the first point contributed
+# This script recalculates hypervolume for all experiments using the corrected algorithm
+python scripts/fix_hypervolume_metric.py \
+    --results_dir results/ablations/capacity
+# Or for sampling ablation:
+python scripts/fix_hypervolume_metric.py \
+    --results_dir results/ablations/sampling
+# Add --dry_run to preview changes without saving
+
 # Update PAS (Preference-Aligned Spread) metrics for all experiments
 python scripts/update_all_pas.py
 
