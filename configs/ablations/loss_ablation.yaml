@@ -203,7 +203,7 @@ experiments:
       modifications: "standard"
     vary:
       base_loss: 
-        - "trajectory_balance"
+        - "trajectory_balance" # best base loss found
         - "detailed_balance"
         - "subtrajectory_balance_05"
         - "subtrajectory_balance_09"
@@ -234,7 +234,7 @@ experiments:
   - group: "kl_regularization"
     description: "Test KL divergence to uniform policy"
     fixed:
-      base_loss: "trajectory_balance"
+      base_loss: "trajectory_balance" # best from group 1
       modifications: "standard"
     vary:
       regularization:

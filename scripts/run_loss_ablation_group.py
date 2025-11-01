@@ -44,6 +44,7 @@ import numpy as np
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
+from scripts.run_ablation_study import run_single_experiment
 
 def load_loss_ablation_config() -> dict:
     """Load the loss ablation configuration."""
@@ -157,28 +158,12 @@ def generate_group_configs(config: dict, group_name: str) -> List[Dict]:
     return configs
 
 
-def create_run_command(exp_config: dict, fixed_config: dict, output_dir: Path) -> str:
-    """Create the command to run a single experiment."""
-    # This would typically call your main training script
-    # For now, we'll create a placeholder command
-
-    exp_name = f"{exp_config['name']}_seed{exp_config['seed']}"
-
-    cmd = [
-        'python', 'scripts/train_mogfn.py',
-        '--config', str(output_dir / f'{exp_name}_config.json'),
-        '--output_dir', str(output_dir / exp_name),
-        '--seed', str(exp_config['seed'])
-    ]
-
-    return ' '.join(cmd)
-
-
 def run_group(config: dict,
              group_name: str,
              output_dir: Path,
              resume: bool = False,
-             dry_run: bool = False) -> None:
+             dry_run: bool = False,
+             device: str = 'cpu') -> None:
     """
     Run all experiments in a group.
 
@@ -188,8 +173,8 @@ def run_group(config: dict,
         output_dir: Output directory for results
         resume: Whether to skip already completed experiments
         dry_run: If True, only print what would be run without executing
+        device: Device to use for training ('cpu' or 'cuda')
     """
-    import subprocess
     from tqdm import tqdm
 
     # Get group info
@@ -254,25 +239,24 @@ def run_group(config: dict,
         with open(exp_config_file, 'w') as f:
             json.dump(exp_config_full, f, indent=2)
 
-        # Create and run command
-        cmd = create_run_command(exp_config, config['fixed'], group_dir)
+        # Create experiment directory
+        exp_dir = group_dir / exp_name
+        exp_dir.mkdir(parents=True, exist_ok=True)
 
         tqdm.write(f"  Running {exp_name}...")
 
         try:
-            # Note: In practice, you would actually run the command here
-            # For now, this is a placeholder
-            # result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=7200)
+            # Run the actual experiment using run_single_experiment
+            result_metrics = run_single_experiment(
+                exp_config=exp_config,
+                fixed_config=config['fixed'],
+                seed=exp_config['seed'],
+                output_dir=group_dir,
+                device=device
+            )
 
-            # Placeholder: Assume success for now
-            # You would load actual results from the experiment output
-            result_metrics = {
-                'exp_name': exp_name,
-                'group': group_name,
-                'seed': exp_config['seed'],
-                'status': 'placeholder',
-                # Add actual metrics here when running real experiments
-            }
+            # Add group information to results
+            result_metrics['group'] = group_name
             results.append(result_metrics)
 
             tqdm.write(f"  ✓ Completed {exp_name}")
@@ -314,7 +298,8 @@ def run_group(config: dict,
 def run_all_groups(config: dict,
                   output_dir: Path,
                   resume: bool = False,
-                  dry_run: bool = False) -> None:
+                  dry_run: bool = False,
+                  device: str = 'cpu') -> None:
     """Run all experiment groups sequentially."""
     experiments = config.get('experiments', [])
 
@@ -326,7 +311,7 @@ def run_all_groups(config: dict,
         group_name = exp_group['group']
         print(f"\n[{i}/{len(experiments)}] Starting group: {group_name}")
 
-        run_group(config, group_name, output_dir, resume, dry_run)
+        run_group(config, group_name, output_dir, resume, dry_run, device)
 
         if i < len(experiments):
             print(f"\n✓ Completed group {i}/{len(experiments)}")
@@ -381,6 +366,13 @@ def main():
         help='Print what would be run without executing'
     )
 
+    parser.add_argument(
+        '--device',
+        type=str,
+        default='cpu',
+        help='Device to use for training (cpu or cuda, default: cpu)'
+    )
+
     args = parser.parse_args()
 
     # Load configuration
@@ -397,11 +389,11 @@ def main():
         return
 
     if args.all:
-        run_all_groups(config, args.output_dir, args.resume, args.dry_run)
+        run_all_groups(config, args.output_dir, args.resume, args.dry_run, args.device)
         return
 
     if args.group:
-        run_group(config, args.group, args.output_dir, args.resume, args.dry_run)
+        run_group(config, args.group, args.output_dir, args.resume, args.dry_run, args.device)
         return
 
     # No command specified

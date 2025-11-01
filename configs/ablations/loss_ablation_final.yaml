@@ -5,15 +5,15 @@ fixed_config: &id017
   grid_size:
   - 32
   - 32
-  capacity: medium
+  capacity: medium # from capacity ablation
   arch_type: film
   hidden_dim: 128
   num_layers: 4
   activation: relu
   preference_distribution: dirichlet
   dirichlet_alpha: 1.5
-  temperature: 2.0
-  sampling_strategy: categorical
+  temperature: 2.0 # from sampling ablation
+  sampling_strategy: categorical # from sampling ablation
   num_preferences_per_batch: 16
   sampling_schedule: uniform
   num_iterations: 4000
@@ -191,7 +191,7 @@ experiments:
 - name: entropy_regularization_none
   group: entropy_regularization
   description: "Test entropy regularization with different \u03B2 values - none"
-  base_loss: trajectory_balance
+  base_loss: trajectory_balance # best base loss from previous group
   modifications: standard
   regularization: none
   regularization_type: none
