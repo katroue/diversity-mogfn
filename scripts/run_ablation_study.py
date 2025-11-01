@@ -16,7 +16,7 @@ Usage:
     python scripts/run_ablation_study.py \
         --config configs/ablations/sampling_ablation.yaml \
         --ablation sampling \
-        --output_dir results/ablations/sampling        --resume
+        --output_dir results/ablations/sampling
     
     # Loss ablation with resume after updated groups based on prior results
     python scripts/run_ablation_study.py \

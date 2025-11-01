@@ -115,7 +115,7 @@ class ConditionalPolicyNetwork(nn.Module):
                 conditioning_type: str = 'concat'):
         """
         Args:
-            conditioning_type: 'concat', 'film', or 'hypernet'
+            conditioning_type: 'concat', 'film'
         """
         super().__init__()
         
@@ -389,48 +389,50 @@ class MOGFN_PC(BaseGFlowNet):
     def trajectory_balance_loss(self,
                             trajectories: List[Trajectory],
                             preferences: List[torch.Tensor],
-                            beta: float = 1.0) -> torch.Tensor:
+                            beta: float = 1.0,
+                            log_reward_clip: float = 10.0) -> torch.Tensor:
         """
         Compute preference-conditional trajectory balance loss.
-        
+
         Args:
             trajectories: List of trajectories
             preferences: List of preference vectors (one per trajectory)
             beta: Reward exponent
-        
+            log_reward_clip: Clipping value for log rewards
+
         Returns:
             loss: TB loss
         """
         losses = []
-        
+
         for traj, pref in zip(trajectories, preferences):
             # Forward flow: log Z + sum_t log P_F(a_t | s_t, ω)
             log_forward_flow = self.log_Z
-            
+
             for state, action in zip(traj.states[:-1], traj.actions):
                 logits = self.forward_logits(state, pref)
                 log_prob = F.log_softmax(logits, dim=-1)[action]
                 log_forward_flow = log_forward_flow + log_prob
-            
+
             # Backward flow: log R(x|ω) + sum_t log P_B(a_t | s_t, ω)
             # traj.reward should be the multi-objective rewards
             if isinstance(traj.reward, torch.Tensor):
                 scalar_reward = self.compute_scalarized_reward(traj.reward, pref, beta)
             else:
-                scalar_reward = torch.tensor(traj.reward)
-            
-            log_reward = torch.log(scalar_reward + 1e-10)
+                scalar_reward = torch.tensor(traj.reward, device=self.log_Z.device)
+
+            log_reward = torch.clamp(torch.log(scalar_reward + 1e-10), max=log_reward_clip)
             log_backward_flow = log_reward
-            
+
             for state, action in zip(traj.states[1:], traj.actions):
                 logits = self.backward_logits(state, pref)
                 log_prob = F.log_softmax(logits, dim=-1)[action]
                 log_backward_flow = log_backward_flow + log_prob
-            
+
             # TB loss
             loss = (log_forward_flow - log_backward_flow) ** 2
             losses.append(loss)
-        
+
         return torch.stack(losses).mean()
     
     def detailed_balance_loss(self,
@@ -496,20 +498,22 @@ class MOGFN_PC(BaseGFlowNet):
                                    lambda_: float = 0.9,
                                    log_reward_clip: float = 10.0) -> torch.Tensor:
         """
-        Compute sub-trajectory balance loss (interpolation between TB and DB).
+        Compute sub-trajectory balance loss.
+
+        SubTB samples sub-trajectories and applies TB loss to them.
+        With lambda_=1.0, this is equivalent to full TB.
+        With lambda_→0, this approaches DB (single-step).
 
         Args:
             trajectories: List of trajectories
             preferences: List of preference vectors
             beta: Reward exponent
-            lambda_: Interpolation parameter (0=DB, 1=TB)
+            lambda_: Geometric distribution parameter (higher = longer sub-trajectories)
             log_reward_clip: Clipping value for log rewards
 
         Returns:
             loss: SubTB loss
         """
-        # SubTB is a weighted combination of TB and DB-style losses
-        # For simplicity, we implement it as TB with sub-trajectory sampling
         losses = []
 
         for traj, pref in zip(trajectories, preferences):
@@ -517,31 +521,62 @@ class MOGFN_PC(BaseGFlowNet):
             if isinstance(traj.reward, torch.Tensor):
                 scalar_reward = self.compute_scalarized_reward(traj.reward, pref, beta)
             else:
-                scalar_reward = torch.tensor(traj.reward)
+                scalar_reward = torch.tensor(traj.reward, device=self.log_Z.device)
 
             log_reward = torch.clamp(torch.log(scalar_reward + 1e-10), max=log_reward_clip)
 
             traj_len = len(traj.states) - 1
 
-            # Sample sub-trajectory length based on lambda
-            # lambda=1 means full trajectory (TB), lambda→0 means single steps (DB)
-            if traj_len > 1:
-                # Geometric distribution for sub-trajectory length
-                max_subtraj_len = max(1, int(traj_len * lambda_))
-                subtraj_len = min(max_subtraj_len, traj_len)
-            else:
-                subtraj_len = traj_len
+            if traj_len == 0:
+                continue  # Skip empty trajectories
 
-            # Sample starting position
-            if traj_len > subtraj_len:
-                start_idx = torch.randint(0, traj_len - subtraj_len + 1, (1,)).item()
-            else:
+            # Sample sub-trajectory using geometric distribution
+            # Geometric(lambda_): P(length = k) ~ (1-lambda_)^k * lambda_
+            # With lambda_ close to 1: prefer longer sub-trajectories
+            # With lambda_ close to 0: prefer shorter sub-trajectories
+
+            # For simplicity, use deterministic length based on lambda_
+            # (In practice, could sample from geometric distribution)
+            if lambda_ >= 1.0:
+                # Full trajectory (standard TB)
                 start_idx = 0
+                end_idx = traj_len
+            else:
+                # Sample sub-trajectory length: geometric-like using lambda_
+                # Mean length = lambda_ * traj_len
+                import random
 
-            end_idx = start_idx + subtraj_len
+                # Sample uniformly from [1, traj_len]
+                max_len = max(1, traj_len)
+
+                # Use geometric sampling: favor longer for higher lambda_
+                # Sample k ~ Geometric(1 - lambda_)
+                # Then use min(k+1, traj_len) as length
+                if lambda_ > 0:
+                    # Expected length proportional to 1/(1-lambda_)
+                    # Adjust to get mean ≈ lambda_ * traj_len
+                    p_stop = 1.0 - lambda_
+                    sampled_len = 1
+                    while sampled_len < traj_len and random.random() > p_stop:
+                        sampled_len += 1
+                    subtraj_len = sampled_len
+                else:
+                    subtraj_len = 1  # Single step (like DB)
+
+                # Sample random starting position
+                max_start = max(0, traj_len - subtraj_len)
+                start_idx = random.randint(0, max_start) if max_start > 0 else 0
+                end_idx = start_idx + subtraj_len
 
             # Compute forward flow for sub-trajectory
-            log_forward_flow = self.log_Z if start_idx == 0 else torch.tensor(0.0)
+            # If starting from s_0, include log Z
+            # If starting from s_i (i>0), we'd need log F(s_i) but we approximate with 0
+            if start_idx == 0:
+                log_forward_flow = self.log_Z.clone()  # Clone to avoid in-place ops
+            else:
+                # For intermediate starting points, approximate initial flow as 0
+                # (Ideally would use learned state values, but that requires V-function)
+                log_forward_flow = torch.zeros_like(self.log_Z)
 
             for t in range(start_idx, end_idx):
                 state = traj.states[t]
@@ -551,7 +586,13 @@ class MOGFN_PC(BaseGFlowNet):
                 log_forward_flow = log_forward_flow + log_prob
 
             # Compute backward flow for sub-trajectory
-            log_backward_flow = log_reward if end_idx == traj_len else torch.tensor(0.0)
+            # If ending at terminal state s_T, include log R
+            # If ending at s_j (j<T), we'd need log R(s_j) but approximate with 0
+            if end_idx == traj_len:
+                log_backward_flow = log_reward.clone()  # Clone to avoid in-place ops
+            else:
+                # For intermediate ending points, approximate terminal reward as 0
+                log_backward_flow = torch.zeros_like(log_reward)
 
             for t in range(start_idx + 1, end_idx + 1):
                 state = traj.states[t]
@@ -560,9 +601,12 @@ class MOGFN_PC(BaseGFlowNet):
                 log_prob = F.log_softmax(backward_logits, dim=-1)[action]
                 log_backward_flow = log_backward_flow + log_prob
 
-            # SubTB loss
+            # SubTB loss: balance forward and backward flow on sub-trajectory
             loss = (log_forward_flow - log_backward_flow) ** 2
             losses.append(loss)
+
+        if len(losses) == 0:
+            return torch.tensor(0.0, device=self.log_Z.device, requires_grad=True)
 
         return torch.stack(losses).mean()
 
@@ -727,7 +771,10 @@ class MOGFN_PC(BaseGFlowNet):
 
         # Compute base loss
         if loss_type == 'trajectory_balance':
-            base_loss = self.trajectory_balance_loss(trajectories, preferences, beta)
+            base_loss = self.trajectory_balance_loss(
+                trajectories, preferences, beta,
+                log_reward_clip=loss_params.get('log_reward_clip', 10.0)
+            )
         elif loss_type == 'detailed_balance':
             base_loss = self.detailed_balance_loss(
                 trajectories, preferences, beta,
@@ -1031,8 +1078,19 @@ class MOGFNTrainer:
         # Sample trajectories with preferences
         trajectories, preferences = self.sampler.sample_batch(batch_size, explore=True)
 
-        # Compute loss with specified loss function and regularization
-        loss = self.mogfn.compute_loss(
+        # Compute base loss (without regularization) for tracking
+        base_loss = self.mogfn.compute_loss(
+            trajectories,
+            preferences,
+            beta=self.beta,
+            loss_type=self.loss_function,
+            loss_params=self.loss_params,
+            regularization='none',
+            regularization_params={}
+        )
+
+        # Compute total loss (with regularization) for optimization
+        total_loss = self.mogfn.compute_loss(
             trajectories,
             preferences,
             beta=self.beta,
@@ -1042,9 +1100,12 @@ class MOGFNTrainer:
             regularization_params=self.regularization_params
         )
 
+        # Compute regularization term separately for tracking (detached)
+        reg_term = total_loss.item() - base_loss.item()
+
         # Backward pass
         self.optimizer.zero_grad()
-        loss.backward()
+        total_loss.backward()
 
         # Gradient clipping
         torch.nn.utils.clip_grad_norm_(self.mogfn.parameters(), max_norm=self.gradient_clip)
@@ -1052,11 +1113,16 @@ class MOGFNTrainer:
         self.optimizer.step()
 
         # Track metrics
-        self.losses.append(loss.item())
+        total_loss_val = total_loss.item()
+        base_loss_val = base_loss.item()
+
+        self.losses.append(total_loss_val)
         self.iteration += 1
 
         metrics = {
-            'loss': loss.item(),
+            'loss': total_loss_val,
+            'base_loss': base_loss_val,
+            'reg_term': reg_term,
             'log_Z': self.mogfn.log_Z.item(),
             'iteration': self.iteration
         }
@@ -1080,16 +1146,25 @@ class MOGFNTrainer:
         Returns:
             history: Training history
         """
-        history = {'loss': [], 'log_Z': [], 'iteration': []}
+        history = {
+            'loss': [],
+            'base_loss': [],
+            'reg_term': [],
+            'log_Z': [],
+            'iteration': []
+        }
 
         for i in range(num_iterations):
             metrics = self.train_step(batch_size, num_preferences_per_batch)
 
             if i % log_every == 0:
-                print(f"Iteration {i}/{num_iterations} - Loss: {metrics['loss']:.4f}, log Z: {metrics['log_Z']:.4f}")
+                print(f"Iteration {i}/{num_iterations} - Total Loss: {metrics['loss']:.4f}, "
+                      f"Base Loss: {metrics['base_loss']:.4f}, Reg: {metrics['reg_term']:.4f}, "
+                      f"log Z: {metrics['log_Z']:.4f}")
 
                 for key, value in metrics.items():
-                    history[key].append(value)
+                    if key in history:
+                        history[key].append(value)
 
         return history
     

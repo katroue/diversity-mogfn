@@ -17,7 +17,7 @@ Usage:
     python scripts/run_loss_ablation_group.py --list
 
     # Resume a group that was interrupted
-    python scripts/run_loss_ablation_group.py --group entropy_regularization --resume
+    python scripts/run_loss_ablation_group.py --group base_loss_comparison --resume
 
     # Dry run to see what would be executed
     python scripts/run_loss_ablation_group.py --group base_loss_comparison --dry-run
@@ -200,7 +200,18 @@ def run_group(config: dict,
     results_file = group_dir / 'results.csv'
     if resume and results_file.exists():
         df = pd.read_csv(results_file)
-        completed = set(df['exp_name'].values)
+        # Handle both formats: with and without group prefix
+        # CSV might have: "base_loss_comparison_trajectory_balance_seed42"
+        # Script uses: "trajectory_balance_seed42"
+        group_prefix = f"{group_name}_"
+        completed_names = df['exp_name'].values
+        completed = set()
+        for name in completed_names:
+            # Strip group prefix if present
+            if name.startswith(group_prefix):
+                completed.add(name[len(group_prefix):])
+            else:
+                completed.add(name)
         print(f"Found {len(completed)} completed experiments, will skip these")
 
     # Save group configuration

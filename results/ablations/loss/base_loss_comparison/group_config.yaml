@@ -1,0 +1,42 @@
+fixed:
+  activation: relu
+  arch_type: concat
+  base_seed: 42
+  batch_size: 128
+  capacity: medium
+  dirichlet_alpha: 1.5
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+  gradient_clip: 10.0
+  grid_size:
+  - 32
+  - 32
+  hidden_dim: 128
+  learning_rate: 0.001
+  lr_schedule: constant
+  num_iterations: 4000
+  num_layers: 4
+  num_preferences_per_batch: 16
+  num_seeds: 5
+  optimizer: adam
+  preference_distribution: dirichlet
+  sampling_schedule: uniform
+  sampling_strategy: categorical
+  task: hypergrid
+  temperature: 2.0
+group:
+  description: Compare base losses without any regularization
+  fixed:
+    modifications: standard
+    regularization: none
+  group: base_loss_comparison
+  vary:
+    base_loss:
+    - trajectory_balance
+    - detailed_balance
+    - subtrajectory_balance_05
+    - subtrajectory_balance_09
+    - subtrajectory_balance_095
+    - flow_matching
+timestamp: '2025-11-01T14:35:40.295593'
