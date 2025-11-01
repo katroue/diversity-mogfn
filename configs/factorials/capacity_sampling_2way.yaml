@@ -1,0 +1,385 @@
+# ============================================================================
+# TWO-WAY FACTORIAL: CAPACITY × SAMPLING
+# ============================================================================
+# Purpose: Test interaction between model capacity and sampling temperature
+#
+# Research Question: Does optimal sampling strategy depend on model capacity?
+# Hypothesis: Small models need lower temperature (limited capacity to explore)
+#            Large models benefit from higher temperature (more capacity)
+#
+# Design: 3 × 3 factorial
+#   Factor A (Capacity): small, medium, large
+#   Factor B (Temperature): 1.0, 2.0, 5.0
+#   Total: 9 combinations × 5 seeds = 45 runs
+# ============================================================================
+
+experiment_name: "capacity_sampling_2way"
+study_type: "factorial"  # Full factorial design
+
+# ============================================================================
+# FIXED PARAMETERS (Controlled across all conditions)
+# ============================================================================
+
+fixed:
+  # Task
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Loss function (BEST from loss ablation)
+  loss_function: "trajectory_balance"  # Or update after loss ablation
+  loss_params:
+    log_reward_clip: 10.0
+  regularization: "entropy"
+  regularization_params:
+    beta: 0.05  # Best from loss ablation
+
+  # Preference sampling (FIXED)
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"  # Always categorical
+
+  # Training
+  max_iterations: 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Two Factors
+# ============================================================================
+
+factors:
+
+  # Factor A: Model Capacity
+  capacity:
+    description: "Model size (hidden dim × num layers)"
+    levels:
+
+      small:
+        label: "Small (32×2)"
+        hidden_dim: 32
+        num_layers: 2
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~519  # Approximate
+
+      medium:
+        label: "Medium (128×4)"
+        hidden_dim: 128
+        num_layers: 4
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~68K  # Approximate
+
+      large:
+        label: "Large (256×6)"
+        hidden_dim: 256
+        num_layers: 6
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~525K  # Approximate
+
+  # Factor B: Sampling Temperature
+  temperature:
+    description: "Exploration temperature for action sampling"
+    levels:
+
+      low:
+        label: "Low (τ=1.0)"
+        temperature: 1.0
+        description: "Balanced exploration-exploitation"
+
+      high:
+        label: "High (τ=2.0)"
+        temperature: 2.0
+        description: "Increased exploration (WINNER from sampling ablation)"
+
+      very_high:
+        label: "Very High (τ=5.0)"
+        temperature: 5.0
+        description: "Maximum exploration"
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (All 9 combinations)
+# ============================================================================
+
+conditions:
+  # Format: {factor1_level}_{factor2_level}
+
+  # Small capacity × All temperatures
+  - name: "small_low"
+    capacity: "small"
+    temperature: "low"
+
+  - name: "small_high"
+    capacity: "small"
+    temperature: "high"
+
+  - name: "small_veryhigh"
+    capacity: "small"
+    temperature: "very_high"
+
+  # Medium capacity × All temperatures
+  - name: "medium_low"
+    capacity: "medium"
+    temperature: "low"
+
+  - name: "medium_high"
+    capacity: "medium"
+    temperature: "high"
+
+  - name: "medium_veryhigh"
+    capacity: "medium"
+    temperature: "very_high"
+
+  # Large capacity × All temperatures
+  - name: "large_low"
+    capacity: "large"
+    temperature: "low"
+
+  - name: "large_high"
+    capacity: "large"
+    temperature: "high"
+
+  - name: "large_veryhigh"
+    capacity: "large"
+    temperature: "very_high"
+
+# ============================================================================
+# METRICS
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy  # MCE
+    - trajectory_diversity_score  # TDS
+    - hypervolume  # Quality
+    - quality_diversity_score  # QDS (composite)
+
+  secondary:
+    - preference_aligned_spread  # PAS
+    - flow_concentration_index  # FCI
+    - diversity_efficiency_ratio  # DER
+    - replay_buffer_diversity  # RBD
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+
+  # Main research questions
+  research_questions:
+
+    rq1:
+      question: "Does capacity have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "capacity"
+      metric: "mode_coverage_entropy"
+
+    rq2:
+      question: "Does temperature have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "temperature"
+      metric: "mode_coverage_entropy"
+
+    rq3:
+      question: "Is there an interaction between capacity and temperature?"
+      test: "two_way_anova"
+      factors: ["capacity", "temperature"]
+      metric: "mode_coverage_entropy"
+      interaction_term: "capacity:temperature"
+
+  # Statistical tests
+  statistical_tests:
+
+    # Two-way ANOVA (main test)
+    - name: "factorial_anova"
+      test: "two_way_anova"
+      formula: "mce ~ C(capacity) + C(temperature) + C(capacity):C(temperature)"
+      alpha: 0.05
+
+    # Post-hoc comparisons (if main effects significant)
+    - name: "capacity_posthoc"
+      test: "tukey_hsd"
+      factor: "capacity"
+      metric: "mce"
+
+    - name: "temperature_posthoc"
+      test: "tukey_hsd"
+      factor: "temperature"
+      metric: "mce"
+
+    # Simple effects (if interaction significant)
+    - name: "simple_effects_capacity"
+      test: "simple_effects"
+      description: "Effect of capacity at each temperature level"
+
+    - name: "simple_effects_temperature"
+      test: "simple_effects"
+      description: "Effect of temperature at each capacity level"
+
+  # Visualizations
+  visualizations:
+
+    - name: "interaction_plot"
+      type: "interaction_plot"
+      x: "capacity"
+      y: "mce"
+      hue: "temperature"
+      save: "figures/capacity_temperature_interaction.pdf"
+      description: "Classic interaction plot showing non-parallel lines if interaction exists"
+
+    - name: "heatmap"
+      type: "heatmap"
+      pivot:
+        index: "capacity"
+        columns: "temperature"
+        values: "mce"
+      save: "figures/capacity_temperature_heatmap.pdf"
+
+    - name: "boxplot_grid"
+      type: "facet_grid"
+      x: "temperature"
+      y: "mce"
+      col: "capacity"
+      kind: "box"
+      save: "figures/capacity_temperature_distributions.pdf"
+
+    - name: "quality_diversity_tradeoff"
+      type: "scatter"
+      x: "hypervolume"
+      y: "mce"
+      hue: "capacity"
+      style: "temperature"
+      save: "figures/quality_diversity_by_factors.pdf"
+
+# ============================================================================
+# HYPOTHESES
+# ============================================================================
+
+hypotheses:
+
+  h1_main_capacity:
+    statement: "Model capacity has a significant main effect on diversity"
+    prediction: "Medium > Small, Large ≈ Medium (diminishing returns)"
+    rationale: "More capacity enables learning diverse policies"
+
+  h2_main_temperature:
+    statement: "Temperature has a significant main effect on diversity"
+    prediction: "High (τ=2.0) > Low (τ=1.0), Very High (τ=5.0) ≈ High"
+    rationale: "Higher temperature increases exploration"
+
+  h3_interaction:
+    statement: "There is an interaction between capacity and temperature"
+    prediction: "Small models: Low > High (limited capacity), Large models: High > Low"
+    rationale: "Small models can't leverage high exploration; large models need it"
+    expected_pattern: "Non-parallel lines in interaction plot"
+
+  h4_quality_tradeoff:
+    statement: "Quality-diversity tradeoff depends on factor combination"
+    prediction: "Large + High achieves best QDS (balanced)"
+    rationale: "Capacity for quality, temperature for diversity"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 45  # 9 conditions × 5 seeds
+  estimated_time_per_run: "24 minutes"  # HyperGrid
+  total_time_sequential: "18 hours"
+  total_time_parallel: "1.8 hours"  # With 10 parallel jobs
+
+  recommended_parallelization:
+    strategy: "condition_parallel"  # Run all 5 seeds for one condition in parallel
+    max_parallel: 10
+
+  storage_per_run: "~50 MB"
+  total_storage: "~2.3 GB"
+
+# ============================================================================
+# EXECUTION PLAN
+# ============================================================================
+
+execution:
+
+  mode: "full_factorial"  # Run all 9 combinations
+
+  order: "randomized"  # Randomize execution order to avoid confounds
+
+  checkpointing:
+    save_every: 1000
+    keep_last_n: 2
+
+  logging:
+    wandb:
+      enabled: true
+      project: "diversity-mogfn-factorial"
+      tags: ["capacity_sampling", "2way_factorial"]
+
+    local:
+      log_level: "INFO"
+      save_plots: true
+
+# ============================================================================
+# EXPECTED RESULTS
+# ============================================================================
+
+expected_results:
+
+  scenario_no_interaction:
+    description: "Factors are independent (additive effects)"
+    interaction_plot: "Parallel lines"
+    implication: "Optimal settings independent: use Medium + High"
+
+  scenario_interaction:
+    description: "Factors depend on each other (multiplicative effects)"
+    interaction_plot: "Non-parallel or crossing lines"
+    implication: "Optimal settings depend on context"
+    examples:
+      - "Small models work best with Low temp"
+      - "Large models need High temp to leverage capacity"
+
+  best_case:
+    condition: "large_high"
+    expected_mce: ">0.5"
+    expected_qds: ">0.65"
+
+  worst_case:
+    condition: "small_veryhigh"
+    expected_mce: "<0.2"
+    expected_qds: "<0.4"
+    rationale: "Small capacity can't handle high exploration"
+
+# ============================================================================
+# NEXT STEPS AFTER ANALYSIS
+# ============================================================================
+
+next_steps:
+
+  if_no_interaction:
+    - "Use Medium capacity + High temperature (independent winners)"
+    - "Move to other 2-way factorials (sampling × loss, capacity × loss)"
+
+  if_interaction_found:
+    - "Investigate interaction mechanism"
+    - "Test intermediate levels to map response surface"
+    - "Consider interaction in final model selection"
+    - "Report interaction in paper as key finding"
+
+  paper_contribution:
+    - "First systematic study of capacity-sampling interaction in MOGFNs"
+    - "Quantify how model expressiveness affects exploration strategies"
+    - "Provide practical guidelines for hyperparameter selection"

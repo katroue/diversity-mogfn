@@ -24,13 +24,15 @@ fixed:
   
   # Model Architecture (FIXED from capacity ablation)
   capacity: "medium"  # 3-layer, 64 hidden units
-  arch_type: "film"   # FiLM conditioning (baseline)
-  hidden_dim: 64
-  num_layers: 3
+  arch_type: "concat"   # FiLM conditioning (baseline)
+  hidden_dim: 128
+  num_layers: 4
   activation: "relu"
   
   # Preference Sampling (FIXED from sampling ablation)
   preference_distribution: "dirichlet"
+  temperature: 2.0  # Best from sampling ablation
+  sampling_strategy: "categorical"
   dirichlet_alpha: 1.5  # Baseline value
   num_preferences_per_batch: 16
   sampling_schedule: "uniform"  # No curriculum

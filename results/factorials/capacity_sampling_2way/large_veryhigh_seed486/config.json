@@ -1,0 +1,42 @@
+{
+  "task": "hypergrid",
+  "grid_size": [
+    32,
+    32
+  ],
+  "loss_function": "trajectory_balance",
+  "loss_params": {
+    "log_reward_clip": 10.0
+  },
+  "regularization": "entropy",
+  "regularization_params": {
+    "beta": 0.05
+  },
+  "preference_distribution": "dirichlet",
+  "dirichlet_alpha": 1.5,
+  "num_preferences_per_batch": 16,
+  "sampling_strategy": "categorical",
+  "max_iterations": 4000,
+  "batch_size": 128,
+  "optimizer": "adam",
+  "learning_rate": 0.001,
+  "gradient_clip": 10.0,
+  "eval_every": 500,
+  "eval_samples": 1000,
+  "final_eval_samples": 10000,
+  "num_seeds": 5,
+  "base_seed": 42,
+  "condition_name": "large_veryhigh",
+  "hidden_dim": 256,
+  "num_layers": 6,
+  "conditioning": "concat",
+  "activation": "relu",
+  "num_parameters": "~525K",
+  "factor_capacity": "large",
+  "capacity_level": "large",
+  "temperature": 5.0,
+  "factor_temperature": "very_high",
+  "temperature_level": "very_high",
+  "seed": 486,
+  "exp_name": "large_veryhigh_seed486"
+}

@@ -1,0 +1,272 @@
+[
+  {
+    "exp_name": "small_low_seed42",
+    "condition": "small_low",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_low_seed153",
+    "condition": "small_low",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_low_seed264",
+    "condition": "small_low",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_low_seed375",
+    "condition": "small_low",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_low_seed486",
+    "condition": "small_low",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_high_seed42",
+    "condition": "small_high",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_high_seed153",
+    "condition": "small_high",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_high_seed264",
+    "condition": "small_high",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_high_seed375",
+    "condition": "small_high",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_high_seed486",
+    "condition": "small_high",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_veryhigh_seed42",
+    "condition": "small_veryhigh",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_veryhigh_seed153",
+    "condition": "small_veryhigh",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_veryhigh_seed264",
+    "condition": "small_veryhigh",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_veryhigh_seed375",
+    "condition": "small_veryhigh",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "small_veryhigh_seed486",
+    "condition": "small_veryhigh",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_low_seed42",
+    "condition": "medium_low",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_low_seed153",
+    "condition": "medium_low",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_low_seed264",
+    "condition": "medium_low",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_low_seed375",
+    "condition": "medium_low",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_low_seed486",
+    "condition": "medium_low",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_high_seed42",
+    "condition": "medium_high",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_high_seed153",
+    "condition": "medium_high",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_high_seed264",
+    "condition": "medium_high",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_high_seed375",
+    "condition": "medium_high",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_high_seed486",
+    "condition": "medium_high",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_veryhigh_seed42",
+    "condition": "medium_veryhigh",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_veryhigh_seed153",
+    "condition": "medium_veryhigh",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_veryhigh_seed264",
+    "condition": "medium_veryhigh",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_veryhigh_seed375",
+    "condition": "medium_veryhigh",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "medium_veryhigh_seed486",
+    "condition": "medium_veryhigh",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_low_seed42",
+    "condition": "large_low",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_low_seed153",
+    "condition": "large_low",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_low_seed264",
+    "condition": "large_low",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_low_seed375",
+    "condition": "large_low",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_low_seed486",
+    "condition": "large_low",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_high_seed42",
+    "condition": "large_high",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_high_seed153",
+    "condition": "large_high",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_high_seed264",
+    "condition": "large_high",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_high_seed375",
+    "condition": "large_high",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_high_seed486",
+    "condition": "large_high",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_veryhigh_seed42",
+    "condition": "large_veryhigh",
+    "seed": 42,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_veryhigh_seed153",
+    "condition": "large_veryhigh",
+    "seed": 153,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_veryhigh_seed264",
+    "condition": "large_veryhigh",
+    "seed": 264,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_veryhigh_seed375",
+    "condition": "large_veryhigh",
+    "seed": 375,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  },
+  {
+    "exp_name": "large_veryhigh_seed486",
+    "condition": "large_veryhigh",
+    "seed": 486,
+    "error": "MOGFNTrainer.__init__() got an unexpected keyword argument 'loss_function'"
+  }
+]

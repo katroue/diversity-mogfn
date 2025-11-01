@@ -53,7 +53,7 @@ experiments:
     sampling_strategy: 'categorical'
     description: 'Medium temperature - balanced'
   
-  - name: 'temp_high'
+  - name: 'temp_high' # Best configuration according to sampling ablation results ********
     temperature: 2.0  # High temp = more random, more exploration
     sampling_strategy: 'categorical'
     description: 'High temperature - explore mode'

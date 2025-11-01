@@ -433,27 +433,335 @@ class MOGFN_PC(BaseGFlowNet):
         
         return torch.stack(losses).mean()
     
-    def compute_loss(self,
-                    trajectories: List[Trajectory],
-                    preferences: List[torch.Tensor],
-                    beta: float = 1.0,
-                    loss_type: str = 'tb') -> torch.Tensor:
+    def detailed_balance_loss(self,
+                             trajectories: List[Trajectory],
+                             preferences: List[torch.Tensor],
+                             beta: float = 1.0,
+                             log_reward_clip: float = 10.0) -> torch.Tensor:
         """
-        Compute training loss for MOGFN.
-        
+        Compute detailed balance loss.
+
         Args:
             trajectories: List of trajectories
             preferences: List of preference vectors
             beta: Reward exponent
-            loss_type: Loss type ('tb')
-        
+            log_reward_clip: Clipping value for log rewards
+
+        Returns:
+            loss: DB loss
+        """
+        losses = []
+
+        for traj, pref in zip(trajectories, preferences):
+            traj_loss = 0.0
+
+            # Compute reward
+            if isinstance(traj.reward, torch.Tensor):
+                scalar_reward = self.compute_scalarized_reward(traj.reward, pref, beta)
+            else:
+                scalar_reward = torch.tensor(traj.reward)
+
+            log_reward = torch.clamp(torch.log(scalar_reward + 1e-10), max=log_reward_clip)
+
+            # Detailed balance: P_F(s'|s,ω) / P_B(s|s',ω) = R(s'|ω) / Z(ω)
+            for t in range(len(traj.states) - 1):
+                state = traj.states[t]
+                next_state = traj.states[t + 1]
+                action = traj.actions[t]
+
+                # Forward transition
+                forward_logits = self.forward_logits(state, pref)
+                log_forward_prob = F.log_softmax(forward_logits, dim=-1)[action]
+
+                # Backward transition
+                backward_logits = self.backward_logits(next_state, pref)
+                log_backward_prob = F.log_softmax(backward_logits, dim=-1)[action]
+
+                # DB condition
+                if t == len(traj.states) - 2:  # Terminal state
+                    db_loss = (log_forward_prob - log_backward_prob - log_reward + self.log_Z) ** 2
+                else:
+                    db_loss = (log_forward_prob - log_backward_prob) ** 2
+
+                traj_loss = traj_loss + db_loss
+
+            losses.append(traj_loss)
+
+        return torch.stack(losses).mean()
+
+    def subtrajectory_balance_loss(self,
+                                   trajectories: List[Trajectory],
+                                   preferences: List[torch.Tensor],
+                                   beta: float = 1.0,
+                                   lambda_: float = 0.9,
+                                   log_reward_clip: float = 10.0) -> torch.Tensor:
+        """
+        Compute sub-trajectory balance loss (interpolation between TB and DB).
+
+        Args:
+            trajectories: List of trajectories
+            preferences: List of preference vectors
+            beta: Reward exponent
+            lambda_: Interpolation parameter (0=DB, 1=TB)
+            log_reward_clip: Clipping value for log rewards
+
+        Returns:
+            loss: SubTB loss
+        """
+        # SubTB is a weighted combination of TB and DB-style losses
+        # For simplicity, we implement it as TB with sub-trajectory sampling
+        losses = []
+
+        for traj, pref in zip(trajectories, preferences):
+            # Compute reward
+            if isinstance(traj.reward, torch.Tensor):
+                scalar_reward = self.compute_scalarized_reward(traj.reward, pref, beta)
+            else:
+                scalar_reward = torch.tensor(traj.reward)
+
+            log_reward = torch.clamp(torch.log(scalar_reward + 1e-10), max=log_reward_clip)
+
+            traj_len = len(traj.states) - 1
+
+            # Sample sub-trajectory length based on lambda
+            # lambda=1 means full trajectory (TB), lambda→0 means single steps (DB)
+            if traj_len > 1:
+                # Geometric distribution for sub-trajectory length
+                max_subtraj_len = max(1, int(traj_len * lambda_))
+                subtraj_len = min(max_subtraj_len, traj_len)
+            else:
+                subtraj_len = traj_len
+
+            # Sample starting position
+            if traj_len > subtraj_len:
+                start_idx = torch.randint(0, traj_len - subtraj_len + 1, (1,)).item()
+            else:
+                start_idx = 0
+
+            end_idx = start_idx + subtraj_len
+
+            # Compute forward flow for sub-trajectory
+            log_forward_flow = self.log_Z if start_idx == 0 else torch.tensor(0.0)
+
+            for t in range(start_idx, end_idx):
+                state = traj.states[t]
+                action = traj.actions[t]
+                forward_logits = self.forward_logits(state, pref)
+                log_prob = F.log_softmax(forward_logits, dim=-1)[action]
+                log_forward_flow = log_forward_flow + log_prob
+
+            # Compute backward flow for sub-trajectory
+            log_backward_flow = log_reward if end_idx == traj_len else torch.tensor(0.0)
+
+            for t in range(start_idx + 1, end_idx + 1):
+                state = traj.states[t]
+                action = traj.actions[t - 1]
+                backward_logits = self.backward_logits(state, pref)
+                log_prob = F.log_softmax(backward_logits, dim=-1)[action]
+                log_backward_flow = log_backward_flow + log_prob
+
+            # SubTB loss
+            loss = (log_forward_flow - log_backward_flow) ** 2
+            losses.append(loss)
+
+        return torch.stack(losses).mean()
+
+    def flow_matching_loss(self,
+                          trajectories: List[Trajectory],
+                          preferences: List[torch.Tensor],
+                          beta: float = 1.0,
+                          log_reward_clip: float = 10.0) -> torch.Tensor:
+        """
+        Compute flow matching loss.
+
+        Args:
+            trajectories: List of trajectories
+            preferences: List of preference vectors
+            beta: Reward exponent
+            log_reward_clip: Clipping value for log rewards
+
+        Returns:
+            loss: FM loss
+        """
+        # Flow matching: match forward and backward flows at each state
+        losses = []
+
+        for traj, pref in zip(trajectories, preferences):
+            # Compute reward
+            if isinstance(traj.reward, torch.Tensor):
+                scalar_reward = self.compute_scalarized_reward(traj.reward, pref, beta)
+            else:
+                scalar_reward = torch.tensor(traj.reward)
+
+            log_reward = torch.clamp(torch.log(scalar_reward + 1e-10), max=log_reward_clip)
+
+            traj_loss = 0.0
+
+            # For each transition, match inflow and outflow
+            for t in range(len(traj.states) - 1):
+                state = traj.states[t]
+                action = traj.actions[t]
+
+                # Forward flow
+                forward_logits = self.forward_logits(state, pref)
+                log_forward_prob = F.log_softmax(forward_logits, dim=-1)[action]
+
+                # Inflow to state
+                if t == 0:
+                    log_inflow = self.log_Z
+                else:
+                    prev_state = traj.states[t - 1]
+                    prev_action = traj.actions[t - 1]
+                    prev_forward_logits = self.forward_logits(prev_state, pref)
+                    log_inflow = F.log_softmax(prev_forward_logits, dim=-1)[prev_action]
+
+                # Outflow from state
+                log_outflow = log_forward_prob
+
+                # Flow matching condition
+                fm_loss = (log_inflow - log_outflow) ** 2
+                traj_loss = traj_loss + fm_loss
+
+            losses.append(traj_loss)
+
+        return torch.stack(losses).mean()
+
+    def entropy_regularization(self,
+                              trajectories: List[Trajectory],
+                              preferences: List[torch.Tensor],
+                              beta_reg: float = 0.01) -> torch.Tensor:
+        """
+        Compute entropy regularization term.
+
+        Args:
+            trajectories: List of trajectories
+            preferences: List of preference vectors
+            beta_reg: Regularization strength
+
+        Returns:
+            entropy_reg: Negative entropy (to be minimized)
+        """
+        entropies = []
+
+        for traj, pref in zip(trajectories, preferences):
+            traj_entropy = 0.0
+
+            for state in traj.states[:-1]:  # Exclude terminal state
+                # Forward policy entropy
+                forward_logits = self.forward_logits(state, pref)
+                forward_probs = F.softmax(forward_logits, dim=-1)
+                forward_entropy = -(forward_probs * F.log_softmax(forward_logits, dim=-1)).sum()
+
+                traj_entropy = traj_entropy + forward_entropy
+
+            entropies.append(traj_entropy)
+
+        # Return negative entropy (we want to maximize entropy = minimize -entropy)
+        return -beta_reg * torch.stack(entropies).mean()
+
+    def kl_regularization(self,
+                         trajectories: List[Trajectory],
+                         preferences: List[torch.Tensor],
+                         beta_reg: float = 0.01) -> torch.Tensor:
+        """
+        Compute KL divergence regularization (between forward and backward policies).
+
+        Args:
+            trajectories: List of trajectories
+            preferences: List of preference vectors
+            beta_reg: Regularization strength
+
+        Returns:
+            kl_reg: KL divergence
+        """
+        kl_divs = []
+
+        for traj, pref in zip(trajectories, preferences):
+            traj_kl = 0.0
+
+            for state in traj.states[:-1]:  # Exclude terminal state
+                # Forward and backward policies
+                forward_logits = self.forward_logits(state, pref)
+                backward_logits = self.backward_logits(state, pref)
+
+                forward_probs = F.softmax(forward_logits, dim=-1)
+                log_forward_probs = F.log_softmax(forward_logits, dim=-1)
+                log_backward_probs = F.log_softmax(backward_logits, dim=-1)
+
+                # KL(forward || backward)
+                kl = (forward_probs * (log_forward_probs - log_backward_probs)).sum()
+                traj_kl = traj_kl + kl
+
+            kl_divs.append(traj_kl)
+
+        return beta_reg * torch.stack(kl_divs).mean()
+
+    def compute_loss(self,
+                    trajectories: List[Trajectory],
+                    preferences: List[torch.Tensor],
+                    beta: float = 1.0,
+                    loss_type: str = 'trajectory_balance',
+                    loss_params: Optional[Dict] = None,
+                    regularization: str = 'none',
+                    regularization_params: Optional[Dict] = None) -> torch.Tensor:
+        """
+        Compute training loss for MOGFN.
+
+        Args:
+            trajectories: List of trajectories
+            preferences: List of preference vectors
+            beta: Reward exponent
+            loss_type: Loss type ('trajectory_balance', 'detailed_balance',
+                                  'subtrajectory_balance', 'flow_matching')
+            loss_params: Additional parameters for the loss function
+            regularization: Regularization type ('none', 'entropy', 'kl')
+            regularization_params: Parameters for regularization
+
         Returns:
             loss: Training loss
         """
-        if loss_type == 'tb':
-            return self.trajectory_balance_loss(trajectories, preferences, beta)
+        if loss_params is None:
+            loss_params = {}
+        if regularization_params is None:
+            regularization_params = {}
+
+        # Compute base loss
+        if loss_type == 'trajectory_balance':
+            base_loss = self.trajectory_balance_loss(trajectories, preferences, beta)
+        elif loss_type == 'detailed_balance':
+            base_loss = self.detailed_balance_loss(
+                trajectories, preferences, beta,
+                log_reward_clip=loss_params.get('log_reward_clip', 10.0)
+            )
+        elif loss_type == 'subtrajectory_balance':
+            base_loss = self.subtrajectory_balance_loss(
+                trajectories, preferences, beta,
+                lambda_=loss_params.get('lambda_', 0.9),
+                log_reward_clip=loss_params.get('log_reward_clip', 10.0)
+            )
+        elif loss_type == 'flow_matching':
+            base_loss = self.flow_matching_loss(
+                trajectories, preferences, beta,
+                log_reward_clip=loss_params.get('log_reward_clip', 10.0)
+            )
         else:
             raise ValueError(f"Unknown loss type: {loss_type}")
+
+        # Add regularization
+        if regularization == 'entropy':
+            reg_term = self.entropy_regularization(
+                trajectories, preferences,
+                beta_reg=regularization_params.get('beta', 0.01)
+            )
+            return base_loss + reg_term
+        elif regularization == 'kl':
+            reg_term = self.kl_regularization(
+                trajectories, preferences,
+                beta_reg=regularization_params.get('beta', 0.01)
+            )
+            return base_loss + reg_term
+        else:
+            return base_loss
 
 
 class MultiObjectiveEnvironment(GFlowNetEnvironment):
@@ -665,14 +973,19 @@ class MOGFNSampler:
 
 class MOGFNTrainer:
     """Trainer for Multi-Objective GFlowNet."""
-    
+
     def __init__(self,
                 mogfn: MOGFN_PC,
                 env: MultiObjectiveEnvironment,
                 preference_sampler: PreferenceSampler,
                 optimizer: torch.optim.Optimizer,
                 beta: float = 1.0,
-                off_policy_ratio: float = 0.0):
+                off_policy_ratio: float = 0.0,
+                loss_function: str = 'trajectory_balance',
+                loss_params: Optional[Dict] = None,
+                regularization: str = 'none',
+                regularization_params: Optional[Dict] = None,
+                gradient_clip: float = 1.0):
         """
         Args:
             mogfn: MOGFN-PC model
@@ -681,81 +994,103 @@ class MOGFNTrainer:
             optimizer: PyTorch optimizer
             beta: Reward exponent for scalarization
             off_policy_ratio: Probability of sampling random actions (off-policy)
+            loss_function: Loss function type ('trajectory_balance', 'detailed_balance',
+                                             'subtrajectory_balance', 'flow_matching')
+            loss_params: Additional parameters for the loss function
+            regularization: Regularization type ('none', 'entropy', 'kl')
+            regularization_params: Parameters for regularization
+            gradient_clip: Maximum gradient norm for clipping
         """
         self.mogfn = mogfn
         self.env = env
         self.sampler = MOGFNSampler(mogfn, env, preference_sampler, off_policy_ratio=off_policy_ratio)
         self.optimizer = optimizer
         self.beta = beta
-        
+        self.loss_function = loss_function
+        self.loss_params = loss_params or {}
+        self.regularization = regularization
+        self.regularization_params = regularization_params or {}
+        self.gradient_clip = gradient_clip
+
         self.losses = []
         self.iteration = 0
     
-    def train_step(self, batch_size: int = 128) -> Dict[str, float]:
+    def train_step(self, batch_size: int = 128, num_preferences_per_batch: Optional[int] = None) -> Dict[str, float]:
         """
         Perform one training step.
-        
+
         Args:
             batch_size: Number of trajectories to sample
-        
+            num_preferences_per_batch: Number of preferences to sample (for batched sampling)
+
         Returns:
             metrics: Dictionary of training metrics
         """
         self.mogfn.train()
-        
+
         # Sample trajectories with preferences
         trajectories, preferences = self.sampler.sample_batch(batch_size, explore=True)
-        
-        # Compute loss
-        loss = self.mogfn.compute_loss(trajectories, preferences, beta=self.beta)
-        
+
+        # Compute loss with specified loss function and regularization
+        loss = self.mogfn.compute_loss(
+            trajectories,
+            preferences,
+            beta=self.beta,
+            loss_type=self.loss_function,
+            loss_params=self.loss_params,
+            regularization=self.regularization,
+            regularization_params=self.regularization_params
+        )
+
         # Backward pass
         self.optimizer.zero_grad()
         loss.backward()
-        
+
         # Gradient clipping
-        torch.nn.utils.clip_grad_norm_(self.mogfn.parameters(), max_norm=1.0)
-        
+        torch.nn.utils.clip_grad_norm_(self.mogfn.parameters(), max_norm=self.gradient_clip)
+
         self.optimizer.step()
-        
+
         # Track metrics
         self.losses.append(loss.item())
         self.iteration += 1
-        
+
         metrics = {
             'loss': loss.item(),
             'log_Z': self.mogfn.log_Z.item(),
             'iteration': self.iteration
         }
-        
+
         return metrics
     
-    def train(self, 
+    def train(self,
             num_iterations: int,
             batch_size: int = 128,
+            num_preferences_per_batch: Optional[int] = None,
             log_every: int = 100) -> Dict[str, List]:
         """
         Train for multiple iterations.
-        
+
         Args:
             num_iterations: Number of training iterations
             batch_size: Batch size
+            num_preferences_per_batch: Number of preferences to sample per batch
             log_every: Log frequency
-        
+
         Returns:
             history: Training history
         """
         history = {'loss': [], 'log_Z': [], 'iteration': []}
-        
+
         for i in range(num_iterations):
-            metrics = self.train_step(batch_size)
-            
+            metrics = self.train_step(batch_size, num_preferences_per_batch)
+
             if i % log_every == 0:
                 print(f"Iteration {i}/{num_iterations} - Loss: {metrics['loss']:.4f}, log Z: {metrics['log_Z']:.4f}")
-                
+
                 for key, value in metrics.items():
                     history[key].append(value)
-        
+
         return history
     
     def evaluate(self, 

@@ -12,6 +12,8 @@ fixed_config: &id017
   activation: relu
   preference_distribution: dirichlet
   dirichlet_alpha: 1.5
+  temperature: 2.0
+  sampling_strategy: categorical
   num_preferences_per_batch: 16
   sampling_schedule: uniform
   num_iterations: 4000

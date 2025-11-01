@@ -16,13 +16,14 @@ Usage:
     python scripts/run_ablation_study.py \
         --config configs/ablations/sampling_ablation.yaml \
         --ablation sampling \
-        --output_dir results/ablations/sampling
+        --output_dir results/ablations/sampling        --resume
     
-    # Loss ablation
+    # Loss ablation with resume after updated groups based on prior results
     python scripts/run_ablation_study.py \
         --config configs/ablations/loss_ablation_final.yaml \
         --ablation loss \
         --output_dir results/ablations/loss
+        --resume
 
 """
 import sys
@@ -112,12 +113,12 @@ def run_single_experiment(exp_config: dict,
     mogfn = MOGFN_PC(
         state_dim=env.state_dim,
         num_objectives=env.num_objectives,
-        hidden_dim=config.get('hidden_dim', 64),
+        hidden_dim=config.get('hidden_dim', 128),
         num_actions=env.num_actions,
-        num_layers=config.get('num_layers', 3),
+        num_layers=config.get('num_layers', 4),
         preference_encoding=config.get('preference_encoding', 'vanilla'),
         conditioning_type=config.get('conditioning', 'concat'),
-        temperature=config.get('temperature', 1.0),
+        temperature=config.get('temperature', 2.0),
         sampling_strategy=config.get('sampling_strategy', 'categorical'),
         top_k=config.get('top_k', None),
         top_p=config.get('top_p', None)
@@ -335,8 +336,7 @@ def run_ablation_study(config_path: str,
     # Get experiment configurations
     experiments = config['experiments']
     fixed_config = config.get('fixed', {})
-    # Seeds can be at top level or in fixed config
-    seeds = config.get('seeds', fixed_config.get('seeds', [42, 123, 456, 789, 1011]))
+    seeds = fixed_config.get('seeds', [42, 123, 456, 789, 1011])
     
     print(f"\n{'='*70}")
     print(f"Ablation Study: {ablation_type}")
@@ -349,24 +349,13 @@ def run_ablation_study(config_path: str,
     
     # Load existing results if resuming
     results_file = output_dir / 'all_results.csv'
-    results_temp_file = output_dir / 'results_temp.csv'
-
-    completed_experiments = set()
-    if resume:
-        # Check for all_results.csv first (completed run)
-        if results_file.exists():
-            print("Resuming from existing results (all_results.csv)...")
-            existing_df = pd.read_csv(results_file)
-            completed_experiments = set(existing_df['exp_name'].values)
-            print(f"Found {len(completed_experiments)} completed experiments")
-        # If not, check for results_temp.csv (interrupted run)
-        elif results_temp_file.exists():
-            print("Resuming from temporary results (results_temp.csv)...")
-            existing_df = pd.read_csv(results_temp_file)
-            completed_experiments = set(existing_df['exp_name'].values)
-            print(f"Found {len(completed_experiments)} completed experiments from interrupted run")
-        else:
-            print("No existing results found, starting from scratch...")
+    if resume and results_file.exists():
+        print("Resuming from existing results...")
+        existing_df = pd.read_csv(results_file)
+        completed_experiments = set(existing_df['exp_name'].values)
+        print(f"Found {len(completed_experiments)} completed experiments")
+    else:
+        completed_experiments = set()
     
     # Run all experiments
     all_results = []
@@ -411,34 +400,27 @@ def run_ablation_study(config_path: str,
     # Create final results DataFrame
     if all_results:
         results_df = pd.DataFrame(all_results)
-
+        
         # If resuming, merge with existing results
-        if resume:
-            if results_file.exists():
-                existing_df = pd.read_csv(results_file)
-                results_df = pd.concat([existing_df, results_df], ignore_index=True)
-            elif results_temp_file.exists():
-                existing_df = pd.read_csv(results_temp_file)
-                results_df = pd.concat([existing_df, results_df], ignore_index=True)
-
+        if resume and results_file.exists():
+            existing_df = pd.read_csv(results_file)
+            results_df = pd.concat([existing_df, results_df], ignore_index=True)
+        
         # Save final results
         results_df.to_csv(results_file, index=False)
         print(f"\n✓ All results saved to {results_file}")
-
+        
         # Print summary statistics
         print("\n" + "="*70)
         print("Summary Statistics")
         print("="*70)
         print(results_df.describe())
-
+        
         return results_df
     else:
         print("\n✗ No new results to save")
-        if resume:
-            if results_file.exists():
-                return pd.read_csv(results_file)
-            elif results_temp_file.exists():
-                return pd.read_csv(results_temp_file)
+        if resume and results_file.exists():
+            return pd.read_csv(results_file)
         return pd.DataFrame()
 
 

@@ -1,0 +1,314 @@
+# ============================================================================
+# TWO-WAY FACTORIAL: SAMPLING × LOSS
+# ============================================================================
+# Purpose: Test interaction between sampling strategy and loss function
+#
+# Research Question: Does optimal loss function depend on exploration strategy?
+# Hypothesis: High exploration may work better with certain loss functions
+#            (e.g., SubTB may need less exploration due to better credit assignment)
+#
+# Design: 3 × 3 factorial
+#   Factor A (Temperature): 1.0, 2.0, 5.0
+#   Factor B (Loss): TB, SubTB(0.9), SubTB(0.9)+Entropy
+#   Total: 9 combinations × 5 seeds = 45 runs
+# ============================================================================
+
+experiment_name: "sampling_loss_2way"
+study_type: "factorial"
+
+# ============================================================================
+# FIXED PARAMETERS
+# ============================================================================
+
+fixed:
+  # Task
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model architecture (BEST from capacity ablation)
+  hidden_dim: 128
+  num_layers: 4
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training
+  max_iterations: 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN
+# ============================================================================
+
+factors:
+
+  # Factor A: Sampling Temperature
+  temperature:
+    description: "Exploration temperature"
+    levels:
+
+      low:
+        label: "Low (τ=1.0)"
+        temperature: 1.0
+
+      high:
+        label: "High (τ=2.0)"
+        temperature: 2.0
+
+      very_high:
+        label: "Very High (τ=5.0)"
+        temperature: 5.0
+
+  # Factor B: Loss Function
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb:
+        label: "SubTB(λ=0.9)"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.05
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS
+# ============================================================================
+
+conditions:
+
+  # Low temperature × All losses
+  - name: "low_tb"
+    temperature: "low"
+    loss: "tb"
+
+  - name: "low_subtb"
+    temperature: "low"
+    loss: "subtb"
+
+  - name: "low_subtb_entropy"
+    temperature: "low"
+    loss: "subtb_entropy"
+
+  # High temperature × All losses
+  - name: "high_tb"
+    temperature: "high"
+    loss: "tb"
+
+  - name: "high_subtb"
+    temperature: "high"
+    loss: "subtb"
+
+  - name: "high_subtb_entropy"
+    temperature: "high"
+    loss: "subtb_entropy"
+
+  # Very high temperature × All losses
+  - name: "veryhigh_tb"
+    temperature: "very_high"
+    loss: "tb"
+
+  - name: "veryhigh_subtb"
+    temperature: "very_high"
+    loss: "subtb"
+
+  - name: "veryhigh_subtb_entropy"
+    temperature: "very_high"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy
+    - trajectory_diversity_score
+    - hypervolume
+    - quality_diversity_score
+
+  secondary:
+    - preference_aligned_spread
+    - flow_concentration_index
+    - final_loss  # Training metric
+    - training_time
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+
+  research_questions:
+
+    rq1:
+      question: "Does temperature have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "temperature"
+      metric: "mode_coverage_entropy"
+
+    rq2:
+      question: "Does loss function have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "loss"
+      metric: "mode_coverage_entropy"
+
+    rq3:
+      question: "Is there an interaction between temperature and loss?"
+      test: "two_way_anova"
+      factors: ["temperature", "loss"]
+      metric: "mode_coverage_entropy"
+      interaction_term: "temperature:loss"
+
+  statistical_tests:
+
+    - name: "factorial_anova"
+      test: "two_way_anova"
+      formula: "mce ~ C(temperature) + C(loss) + C(temperature):C(loss)"
+      alpha: 0.05
+
+    - name: "temperature_posthoc"
+      test: "tukey_hsd"
+      factor: "temperature"
+      metric: "mce"
+
+    - name: "loss_posthoc"
+      test: "tukey_hsd"
+      factor: "loss"
+      metric: "mce"
+
+  visualizations:
+
+    - name: "interaction_plot"
+      type: "interaction_plot"
+      x: "loss"
+      y: "mce"
+      hue: "temperature"
+      save: "figures/sampling_loss_interaction.pdf"
+
+    - name: "heatmap"
+      type: "heatmap"
+      pivot:
+        index: "temperature"
+        columns: "loss"
+        values: "mce"
+      save: "figures/sampling_loss_heatmap.pdf"
+
+# ============================================================================
+# HYPOTHESES
+# ============================================================================
+
+hypotheses:
+
+  h1_temperature_main:
+    statement: "Higher temperature increases diversity regardless of loss"
+    prediction: "Very High > High > Low for all losses"
+
+  h2_loss_main:
+    statement: "SubTB+Entropy provides best diversity regardless of temperature"
+    prediction: "SubTB+Entropy > SubTB > TB for all temperatures"
+
+  h3_interaction:
+    statement: "Optimal temperature depends on loss function"
+    prediction: "SubTB needs less exploration (better credit assignment), TB needs more"
+    expected_pattern: "SubTB: low temp sufficient, TB: needs high temp"
+
+  h4_exploration_compensation:
+    statement: "Entropy regularization reduces need for high temperature"
+    prediction: "SubTB+Entropy works well even at low temperature"
+    rationale: "Entropy regularization provides exploration at loss level"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 45  # 9 conditions × 5 seeds
+  estimated_time_per_run: "24 minutes"
+  total_time_sequential: "18 hours"
+  total_time_parallel: "1.8 hours"  # With 10 parallel jobs
+
+# ============================================================================
+# EXPECTED RESULTS
+# ============================================================================
+
+expected_results:
+
+  scenario_no_interaction:
+    description: "Temperature and loss have independent additive effects"
+    best_combination: "veryhigh_subtb_entropy"
+    implication: "Combine best from each ablation"
+
+  scenario_interaction:
+    description: "Optimal temperature depends on loss function"
+    examples:
+      - "SubTB+Entropy: works well even at low temp (exploration from entropy)"
+      - "TB: needs high temp to achieve similar diversity"
+    implication: "Loss function choice affects optimal sampling strategy"
+
+  best_case:
+    condition: "veryhigh_subtb_entropy" or "high_subtb_entropy"
+    expected_mce: ">0.5"
+    expected_qds: ">0.65"
+
+  efficiency_finding:
+    hypothesis: "SubTB+Entropy at low/medium temp matches TB at high temp"
+    benefit: "More stable training with similar diversity"
+    practical_value: "Easier to tune, more robust"
+
+# ============================================================================
+# NEXT STEPS
+# ============================================================================
+
+next_steps:
+
+  if_no_interaction:
+    - "Use highest performing level from each factor independently"
+    - "Expected: Very High temperature + SubTB+Entropy"
+
+  if_interaction_found:
+    - "Identify efficient combinations (e.g., SubTB+Entropy at lower temp)"
+    - "Recommend based on stability vs performance trade-off"
+    - "Paper contribution: Loss function affects optimal exploration strategy"
+
+  paper_contribution:
+    - "First study of loss-sampling interaction in GFlowNets"
+    - "Show that credit assignment quality affects exploration needs"
+    - "Practical guidelines for choosing loss+sampling combination"

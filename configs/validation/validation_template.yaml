@@ -1,0 +1,326 @@
+# ============================================================================
+# VALIDATION EXPERIMENT TEMPLATE
+# ============================================================================
+# Purpose: Validate HyperGrid findings on real-world tasks
+#
+# This template is for testing 2-3 selected configurations (identified from
+# HyperGrid ablations and factorials) on practical applications.
+#
+# Usage:
+#   1. Copy this template
+#   2. Update task-specific parameters
+#   3. Keep model/training hyperparameters from HyperGrid winner
+#   4. Run 5 seeds for statistical robustness
+# ============================================================================
+
+experiment_name: "validation_[TASK_NAME]"
+study_type: "validation"
+
+# ============================================================================
+# TASK CONFIGURATION (CHANGE THIS FOR YOUR TASK)
+# ============================================================================
+
+task:
+  name: "[TASK_NAME]"  # e.g., "3grams", "molecules", "sequences"
+
+  # Task-specific parameters
+  task_params:
+    # Define task-specific parameters here
+    # Examples:
+    # vocab_size: 100
+    # sequence_length: 50
+    # num_objectives: 2
+    pass
+
+  # Objectives to optimize
+  objectives:
+    - name: "objective1"
+      description: "First objective to optimize"
+      minimize: false  # or true
+
+    - name: "objective2"
+      description: "Second objective"
+      minimize: false
+
+# ============================================================================
+# CONFIGURATIONS TO VALIDATE
+# ============================================================================
+# These are the 2-3 winners from HyperGrid experiments
+
+configurations:
+
+  # Configuration A: Overall Winner (Best QDS on HyperGrid)
+  - name: "winner"
+    label: "Winner from HyperGrid"
+
+    # Model architecture (from capacity ablation winner)
+    hidden_dim: 128  # UPDATE from HyperGrid winner
+    num_layers: 4
+    conditioning: "concat"
+    activation: "relu"
+
+    # Sampling (from sampling ablation winner)
+    temperature: 2.0  # UPDATE from HyperGrid winner
+    sampling_strategy: "categorical"
+
+    # Loss function (from loss ablation winner)
+    loss_function: "trajectory_balance"  # UPDATE from HyperGrid winner
+    loss_params:
+      log_reward_clip: 10.0
+    regularization: "entropy"  # UPDATE if needed
+    regularization_params:
+      beta: 0.05
+
+    # Preferences
+    preference_distribution: "dirichlet"
+    dirichlet_alpha: 1.5
+
+  # Configuration B: Diversity-Focused (Best MCE on HyperGrid, if different)
+  - name: "diversity_focused"
+    label: "Diversity-Focused from HyperGrid"
+
+    hidden_dim: 128  # May be same or different
+    num_layers: 4
+    conditioning: "concat"
+    activation: "relu"
+
+    temperature: 5.0  # Likely higher for diversity
+    sampling_strategy: "categorical"
+
+    loss_function: "subtrajectory_balance"
+    loss_params:
+      lambda_: 0.9
+      log_reward_clip: 10.0
+    regularization: "entropy"
+    regularization_params:
+      beta: 0.05
+
+    preference_distribution: "dirichlet"
+    dirichlet_alpha: 1.5
+
+  # Configuration C: Baseline (Standard settings)
+  - name: "baseline"
+    label: "Baseline (Standard Settings)"
+
+    hidden_dim: 64  # Medium capacity
+    num_layers: 3
+    conditioning: "concat"
+    activation: "relu"
+
+    temperature: 1.0  # Standard temperature
+    sampling_strategy: "categorical"
+
+    loss_function: "trajectory_balance"
+    loss_params:
+      log_reward_clip: 10.0
+    regularization: "none"
+    regularization_params: {}
+
+    preference_distribution: "dirichlet"
+    dirichlet_alpha: 1.5
+
+# ============================================================================
+# TRAINING PARAMETERS (Adapt to task complexity)
+# ============================================================================
+
+training:
+  # May need to adjust for task complexity
+  max_iterations: 10000  # Increase for complex tasks
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001  # May need task-specific tuning
+  lr_schedule: "constant"
+  gradient_clip: 10.0
+
+  # Early stopping (optional for complex tasks)
+  early_stopping:
+    enabled: true
+    patience: 1000
+    min_delta: 0.001
+
+# ============================================================================
+# EVALUATION
+# ============================================================================
+
+evaluation:
+  eval_every: 1000  # Less frequent for complex tasks
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Validation set (if applicable)
+  validation_split: 0.1  # Use 10% for validation
+
+# ============================================================================
+# METRICS (Same as HyperGrid for comparison)
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy  # MCE
+    - trajectory_diversity_score  # TDS
+    - hypervolume  # Quality
+    - quality_diversity_score  # QDS (composite)
+
+  secondary:
+    - preference_aligned_spread  # PAS
+    - flow_concentration_index  # FCI
+    - diversity_efficiency_ratio  # DER
+    - average_pairwise_distance
+
+  # Task-specific metrics (add as needed)
+  task_specific:
+    - validity_rate  # For molecules/sequences
+    - novelty_rate  # For generation tasks
+    - uniqueness_rate  # For diversity assessment
+
+# ============================================================================
+# SEEDS
+# ============================================================================
+
+seeds: [42, 123, 456, 789, 1011]  # Same as HyperGrid for consistency
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+
+  research_questions:
+
+    rq1:
+      question: "Does HyperGrid winner transfer to this task?"
+      test: "one_way_anova"
+      groups: ["configuration"]
+      metric: "mode_coverage_entropy"
+
+    rq2:
+      question: "Are diversity improvements statistically significant?"
+      test: "paired_t_test"
+      compare: ["winner", "baseline"]
+      metric: "mode_coverage_entropy"
+
+    rq3:
+      question: "Is quality-diversity tradeoff preserved?"
+      test: "correlation"
+      x_metric: "hypervolume"
+      y_metric: "mode_coverage_entropy"
+
+  visualizations:
+
+    - name: "config_comparison"
+      type: "boxplot"
+      x: "configuration"
+      y: "mce"
+      save: "figures/[TASK]_config_comparison.pdf"
+
+    - name: "quality_diversity_scatter"
+      type: "scatter"
+      x: "hypervolume"
+      y: "mce"
+      hue: "configuration"
+      save: "figures/[TASK]_quality_diversity.pdf"
+
+    - name: "transfer_heatmap"
+      type: "heatmap"
+      data: "ranking_comparison"  # HyperGrid rank vs task rank
+      save: "figures/[TASK]_transfer_heatmap.pdf"
+
+# ============================================================================
+# EXPECTED OUTCOMES
+# ============================================================================
+
+expected_outcomes:
+
+  strong_transfer:
+    description: "HyperGrid winner is also best on this task"
+    criteria:
+      - "Winner config achieves highest MCE"
+      - "Improvement over baseline > 20%"
+      - "p < 0.05 in statistical tests"
+    implication: "Findings generalize well to this domain"
+
+  partial_transfer:
+    description: "HyperGrid winner is competitive but not best"
+    criteria:
+      - "Winner config in top 2"
+      - "Improvement over baseline > 10%"
+      - "Some metrics transfer better than others"
+    implication: "Core principles transfer, minor tuning needed"
+
+  weak_transfer:
+    description: "HyperGrid winner does not perform well"
+    criteria:
+      - "Winner config not in top 2"
+      - "Improvement over baseline < 10%"
+      - "p > 0.05 for most comparisons"
+    implication: "Task-specific factors dominate, need task-specific tuning"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 15  # 3 configs × 5 seeds
+  estimated_time_per_run: "[TIME]"  # Update based on task
+  total_time_sequential: "[TOTAL_TIME]"
+  total_time_parallel: "[PARALLEL_TIME]"
+
+  gpu_required: true  # or false
+  gpu_memory: "8GB"  # Adjust based on task
+
+  storage_per_run: "100MB"  # Adjust based on task
+  total_storage: "1.5GB"
+
+# ============================================================================
+# NEXT STEPS AFTER VALIDATION
+# ============================================================================
+
+next_steps:
+
+  if_strong_transfer:
+    - "Report as successful validation in paper"
+    - "Use same config for other similar tasks"
+    - "Claim generalization across domains"
+
+  if_partial_transfer:
+    - "Investigate what aspects transfer vs. task-specific"
+    - "Provide guidelines for adaptation"
+    - "Characterize task properties that affect transfer"
+
+  if_weak_transfer:
+    - "Analyze failure modes"
+    - "Identify missing factors in HyperGrid"
+    - "Consider intermediate-complexity tasks"
+    - "Task-specific ablation may be needed"
+
+# ============================================================================
+# COMPARISON WITH HYPERGRID
+# ============================================================================
+
+comparison_with_hypergrid:
+
+  # Save HyperGrid results for each config for direct comparison
+  hypergrid_results:
+    winner:
+      mce: 0.XXX  # Fill in after HyperGrid experiments
+      tds: 0.XXX
+      hypervolume: 0.XXX
+      qds: 0.XXX
+
+    diversity_focused:
+      mce: 0.XXX
+      tds: 0.XXX
+      hypervolume: 0.XXX
+      qds: 0.XXX
+
+    baseline:
+      mce: 0.XXX
+      tds: 0.XXX
+      hypervolume: 0.XXX
+      qds: 0.XXX
+
+  # Metrics for transfer analysis
+  transfer_metrics:
+    - rank_correlation  # Spearman correlation of config rankings
+    - relative_improvement  # % improvement over baseline
+    - effect_size  # Cohen's d for each config
