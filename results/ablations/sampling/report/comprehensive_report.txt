@@ -5,43 +5,43 @@ SAMPLING ABLATION STUDY - COMPREHENSIVE REPORT
 
 ## Exploration Temperature
 ----------------------------------------------------------------------
-  Best HYPERVOLUME: temp_very_high (1.1922)
-  Best TDS: temp_very_high (0.6566)
-  Best MPD: temp_low (4.5188)
   Best MCE: temp_high (0.3701)
   Best PMD: temp_high (0.0000)
+  Best PAS: temp_high (0.4847)
+  Best FCI: temp_very_high (0.5585)
+  Best QDS: temp_high (0.6389)
 
 ## Sampling Strategies
 ----------------------------------------------------------------------
-  Best HYPERVOLUME: top_k (1.1805)
-  Best TDS: top_k (0.4113)
-  Best MPD: top_p (4.5451)
   Best MCE: top_k (0.2024)
   Best PMD: categorical (0.0000)
+  Best PAS: categorical (0.1108)
+  Best FCI: top_k (0.4416)
+  Best QDS: categorical (0.5187)
 
 ## On-Policy vs Off-Policy
 ----------------------------------------------------------------------
-  Best HYPERVOLUME: off_policy_50 (1.1929)
-  Best TDS: off_policy_10 (0.4276)
-  Best MPD: off_policy_50 (1.7068)
   Best MCE: off_policy_10 (0.4534)
   Best PMD: off_policy_10 (0.0000)
+  Best PAS: off_policy_10 (0.4734)
+  Best FCI: off_policy_10 (0.4221)
+  Best QDS: off_policy_10 (0.6353)
 
 ## Preference Diversity
 ----------------------------------------------------------------------
-  Best HYPERVOLUME: pref_dirichlet_medium (1.1793)
-  Best TDS: pref_dirichlet_high (0.4181)
-  Best MPD: pref_uniform (1.5389)
   Best MCE: pref_dirichlet_low (0.2134)
   Best PMD: pref_dirichlet_high (0.0000)
+  Best PAS: pref_dirichlet_low (0.1122)
+  Best FCI: pref_dirichlet_high (0.4463)
+  Best QDS: pref_dirichlet_low (0.5192)
 
 ## Batch Size Effects
 ----------------------------------------------------------------------
-  Best HYPERVOLUME: batch_256 (1.1821)
-  Best TDS: batch_256 (0.4106)
-  Best MPD: batch_64 (1.6709)
   Best MCE: batch_512 (0.1989)
   Best PMD: batch_256 (0.0000)
+  Best PAS: batch_512 (0.1089)
+  Best FCI: batch_256 (0.4439)
+  Best QDS: batch_512 (0.5181)
 
 
 ======================================================================
@@ -49,11 +49,11 @@ OVERALL RECOMMENDATIONS
 ======================================================================
 
 Top 5 Configurations by Average Rank:
-  1. temp_very_high (Average Rank: 5.60)
-  2. temp_high (Average Rank: 7.00)
-  3. off_policy_10 (Average Rank: 7.30)
-  4. off_policy_50 (Average Rank: 7.60)
-  5. diverse_sampling (Average Rank: 8.00)
+  1. temp_high (Average Rank: 4.14)
+  2. temp_very_high (Average Rank: 4.14)
+  3. off_policy_10 (Average Rank: 6.43)
+  4. diverse_sampling (Average Rank: 7.71)
+  5. off_policy_25 (Average Rank: 7.71)
 
 
 Key Insights:

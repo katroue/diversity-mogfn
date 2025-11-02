@@ -1,0 +1,40 @@
+{
+  "task": "hypergrid",
+  "grid_size": [
+    32,
+    32
+  ],
+  "capacity": "medium",
+  "arch_type": "concat",
+  "hidden_dim": 128,
+  "num_layers": 4,
+  "activation": "relu",
+  "preference_distribution": "dirichlet",
+  "temperature": 2.0,
+  "sampling_strategy": "categorical",
+  "dirichlet_alpha": 1.5,
+  "num_preferences_per_batch": 16,
+  "sampling_schedule": "uniform",
+  "num_iterations": 4000,
+  "batch_size": 128,
+  "optimizer": "adam",
+  "learning_rate": 0.001,
+  "lr_schedule": "constant",
+  "gradient_clip": 10.0,
+  "eval_every": 500,
+  "eval_samples": 1000,
+  "final_eval_samples": 10000,
+  "num_seeds": 5,
+  "base_seed": 42,
+  "name": "flow_matching",
+  "group": "base_loss_comparison",
+  "seed": 375,
+  "base_loss": "flow_matching",
+  "base_loss_type": "flow_matching",
+  "base_loss_params": {
+    "log_reward_clip": 10.0
+  },
+  "base_loss_label": "FM",
+  "regularization": "none",
+  "modifications": "standard"
+}
