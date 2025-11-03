@@ -1032,6 +1032,8 @@ class MOGFNTrainer:
                 loss_params: Optional[Dict] = None,
                 regularization: str = 'none',
                 regularization_params: Optional[Dict] = None,
+                modifications: str = 'none',
+                modifications_params: Optional[Dict] = None,
                 gradient_clip: float = 1.0):
         """
         Args:
@@ -1046,6 +1048,8 @@ class MOGFNTrainer:
             loss_params: Additional parameters for the loss function
             regularization: Regularization type ('none', 'entropy', 'kl')
             regularization_params: Parameters for regularization
+            modifications: Modification type ('none', 'temperature_scaling', 'reward_shaping')
+            modifications_params: Parameters for modifications
             gradient_clip: Maximum gradient norm for clipping
         """
         self.mogfn = mogfn
@@ -1057,11 +1061,128 @@ class MOGFNTrainer:
         self.loss_params = loss_params or {}
         self.regularization = regularization
         self.regularization_params = regularization_params or {}
+        self.modifications = modifications
+        self.modifications_params = modifications_params or {}
         self.gradient_clip = gradient_clip
 
         self.losses = []
         self.iteration = 0
-    
+
+        # Track visited states for reward shaping (novelty bonus)
+        self.visited_states = set()
+
+    def apply_temperature_scaling(self, logits: torch.Tensor) -> torch.Tensor:
+        """
+        Apply temperature scaling to logits.
+
+        Args:
+            logits: Logits tensor
+
+        Returns:
+            scaled_logits: Temperature-scaled logits
+        """
+        if self.modifications != 'temperature_scaling':
+            return logits
+
+        temperature = self.modifications_params.get('temperature', 1.0)
+        return logits / temperature
+
+    def compute_novelty_bonus(self, state: torch.Tensor) -> float:
+        """
+        Compute novelty bonus for a state.
+
+        Returns higher bonus for states that haven't been visited frequently.
+
+        Args:
+            state: State tensor
+
+        Returns:
+            novelty_bonus: Bonus reward for novelty (0 to 1)
+        """
+        from src.utils.tensor_utils import to_hashable
+
+        # Convert state to hashable key
+        state_key = to_hashable(state)
+
+        # Count how many times we've seen this state
+        if state_key in self.visited_states:
+            # Already visited - no bonus
+            return 0.0
+        else:
+            # Novel state - give bonus
+            return 1.0
+
+    def apply_reward_shaping(self, reward: torch.Tensor, state: torch.Tensor) -> torch.Tensor:
+        """
+        Apply reward shaping with diversity bonus.
+
+        Args:
+            reward: Original reward
+            state: Current state
+
+        Returns:
+            shaped_reward: Reward with diversity bonus added
+        """
+        if self.modifications != 'reward_shaping':
+            return reward
+
+        gamma = self.modifications_params.get('gamma', 0.1)
+
+        # Compute novelty bonus
+        novelty_bonus = self.compute_novelty_bonus(state)
+
+        # Add diversity bonus
+        shaped_reward = reward + gamma * novelty_bonus
+
+        # Track this state as visited
+        from src.utils.tensor_utils import to_hashable
+        state_key = to_hashable(state)
+        self.visited_states.add(state_key)
+
+        return shaped_reward
+
+    def _apply_reward_shaping_to_trajectories(self, trajectories: List[Trajectory]) -> List[Trajectory]:
+        """
+        Apply reward shaping to all trajectories.
+
+        Args:
+            trajectories: List of trajectories
+
+        Returns:
+            modified_trajectories: Trajectories with shaped rewards
+        """
+        gamma = self.modifications_params.get('gamma', 0.1)
+        modified_trajectories = []
+
+        for traj in trajectories:
+            # Get the terminal state (last state)
+            terminal_state = traj.states[-1]
+
+            # Compute novelty bonus for this terminal state
+            novelty_bonus = self.compute_novelty_bonus(terminal_state)
+
+            # Shape the reward (multi-objective)
+            original_reward = traj.reward
+            shaped_reward = original_reward + gamma * novelty_bonus
+
+            # Create new trajectory with shaped reward
+            modified_traj = Trajectory(
+                states=traj.states,
+                actions=traj.actions,
+                log_probs=traj.log_probs,
+                is_terminal=traj.is_terminal,
+                reward=shaped_reward
+            )
+
+            modified_trajectories.append(modified_traj)
+
+            # Track this state as visited
+            from src.utils.tensor_utils import to_hashable
+            state_key = to_hashable(terminal_state)
+            self.visited_states.add(state_key)
+
+        return modified_trajectories
+
     def train_step(self, batch_size: int = 128, num_preferences_per_batch: Optional[int] = None) -> Dict[str, float]:
         """
         Perform one training step.
@@ -1075,8 +1196,23 @@ class MOGFNTrainer:
         """
         self.mogfn.train()
 
+        # Apply temperature scaling modification if enabled
+        original_temperature = None
+        if self.modifications == 'temperature_scaling':
+            temperature = self.modifications_params.get('temperature', 1.0)
+            original_temperature = self.mogfn.temperature
+            self.mogfn.temperature = temperature
+
         # Sample trajectories with preferences
         trajectories, preferences = self.sampler.sample_batch(batch_size, explore=True)
+
+        # Restore original temperature if modified
+        if original_temperature is not None:
+            self.mogfn.temperature = original_temperature
+
+        # Apply reward shaping modification if enabled
+        if self.modifications == 'reward_shaping':
+            trajectories = self._apply_reward_shaping_to_trajectories(trajectories)
 
         # Compute base loss (without regularization) for tracking
         base_loss = self.mogfn.compute_loss(

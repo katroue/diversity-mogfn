@@ -41,10 +41,11 @@ import pandas as pd
 import numpy as np
 
 # Add project root to path
-project_root = Path(__file__).parent.parent
+# __file__ is in scripts/ablations/, so go up 2 levels to project root
+project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from run_ablation_study import run_single_experiment
+from scripts.ablations.run_ablation_study import run_single_experiment
 
 def load_loss_ablation_config() -> dict:
     """Load the loss ablation configuration."""

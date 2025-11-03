@@ -37,5 +37,14 @@
   },
   "regularization_label": "Entropy(\u03b2=0.05)",
   "base_loss": "subtrajectory_balance_09",
-  "modifications": "standard"
+  "base_loss_type": "subtrajectory_balance",
+  "base_loss_params": {
+    "lambda_": 0.9,
+    "log_reward_clip": 10.0
+  },
+  "base_loss_label": "SubTB(\u03bb=0.9)",
+  "modifications": "standard",
+  "modifications_type": "none",
+  "modifications_params": {},
+  "modifications_label": "Standard"
 }

@@ -222,7 +222,7 @@ experiments:
     vary:
       regularization:
         - "none"
-        - "entropy_001"
+        - "entropy_001" # Best found from summary results
         - "entropy_005"
         - "entropy_01"
         - "entropy_05"
@@ -234,39 +234,23 @@ experiments:
   - group: "kl_regularization"
     description: "Test KL divergence to uniform policy"
     fixed:
-      base_loss: "subtrajectory_balance_09" # best from group 1
+      base_loss: "subtrajectory_balance_09" # Best from group 1
       modifications: "standard"
     vary:
       regularization:
         - "none"
-        - "kl_uniform_001"
-        - "kl_uniform_01"
+        - "kl_uniform_001" # found twice as more modes that 01
+        - "kl_uniform_01" # Best found but has minimal impact on diversity according to results
     # 3 experiments × 5 seeds = 15 runs
     
   # ---------------------------------------------------------------------------
-  # Experiment Group 4: SubTB + Entropy (Hypothesis: Best Combination) Not necessary since already tested in group 2
-  # ---------------------------------------------------------------------------
-  - group: "subtb_entropy_sweep"
-    description: "Test SubTB(0.9) with different entropy regularization"
-    fixed:
-      base_loss: "subtrajectory_balance_09"
-      modifications: "standard"
-    vary:
-      regularization:
-        - "none"
-        - "entropy_001"
-        - "entropy_005"
-        - "entropy_01"
-    # 4 experiments × 5 seeds = 20 runs
-    
-  # ---------------------------------------------------------------------------
-  # Experiment Group 5: Loss Modifications
+  # Experiment Group 4: Loss Modifications
   # ---------------------------------------------------------------------------
   - group: "loss_modifications"
     description: "Test modifications on best base+reg combination"
     fixed:
       base_loss: "subtrajectory_balance_09" # Best from Group 1
-      regularization: "entropy_005"  # Will update after Group 2
+      regularization: "entropy_001"  # Updated after Group 2 results
     vary:
       modifications:
         - "standard"
@@ -422,7 +406,7 @@ hypotheses:
     prediction: "entropy(β=0.5) reduces hypervolume by >10%"
     rationale: "Over-regularization reduces focus on high-reward regions"
     
-  h4:
+  h4: # From Group 2
     statement: "SubTB(0.9) + entropy(β=0.05) is optimal combination"
     prediction: "Highest QDS score (balanced quality-diversity)"
     rationale: "SubTB provides good credit assignment, entropy adds exploration"

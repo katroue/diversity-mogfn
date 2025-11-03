@@ -150,10 +150,12 @@ def run_single_experiment(exp_config: dict,
       optimizer=optimizer,
       beta=config.get('beta', 1.0),
       off_policy_ratio=config.get('off_policy_ratio', 0.0),
-      loss_function=config.get('base_loss_type', 'trajectory_balance'),  # ← ADD THIS
-      loss_params=config.get('base_loss_params', {}),                     # ← ADD THIS
-      regularization=config.get('regularization_type', 'none'),           # ← ADD THIS
-      regularization_params=config.get('regularization_params', {}),      # ← ADD THIS
+      loss_function=config.get('base_loss_type', 'trajectory_balance'),
+      loss_params=config.get('base_loss_params', {}),
+      regularization=config.get('regularization_type', 'none'),
+      regularization_params=config.get('regularization_params', {}),
+      modifications=config.get('modifications_type', 'none'),
+      modifications_params=config.get('modifications_params', {}),
       gradient_clip=config.get('gradient_clip', 10.0)
     )
     

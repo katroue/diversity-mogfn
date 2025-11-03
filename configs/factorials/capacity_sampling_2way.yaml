@@ -26,12 +26,15 @@ fixed:
   grid_size: [32, 32]
 
   # Loss function (BEST from loss ablation)
-  loss_function: "trajectory_balance"  # Or update after loss ablation
+  loss_function: "subtrajectory_balance"  # Best from loss ablation group 1
   loss_params:
+    lambda_: 0.9
     log_reward_clip: 10.0
   regularization: "entropy"
   regularization_params:
-    beta: 0.05  # Best from loss ablation
+    beta: 0.01  # Best from loss ablation group 2
+  modifications: "none"
+  modifications_params: {}
 
   # Preference sampling (FIXED)
   preference_distribution: "dirichlet"
@@ -163,13 +166,14 @@ conditions:
 metrics:
   primary:
     - mode_coverage_entropy  # MCE
+    - preference_aligned_spread  # PAS
     - trajectory_diversity_score  # TDS
-    - hypervolume  # Quality
+    - flow_concentration_index  # FCI
     - quality_diversity_score  # QDS (composite)
 
   secondary:
-    - preference_aligned_spread  # PAS
-    - flow_concentration_index  # FCI
+    - quality_diversity_score  # QDS (composite)
+    - hypervolume  # Quality
     - diversity_efficiency_ratio  # DER
     - replay_buffer_diversity  # RBD
 

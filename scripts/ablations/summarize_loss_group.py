@@ -7,7 +7,7 @@ aggregating results across seeds and ranking configurations by key metrics.
 
 Usage:
     # Summarize a specific group
-    python scripts/ablations/summarize_loss_group.py --group base_loss_comparison
+    python scripts/ablations/summarize_loss_group.py --group kl_regularization
 
     # Summarize all groups
     python scripts/ablations/summarize_loss_group.py --all

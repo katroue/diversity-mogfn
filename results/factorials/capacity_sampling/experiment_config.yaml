@@ -187,17 +187,20 @@ config:
     - 32
     - 32
     learning_rate: 0.001
-    loss_function: trajectory_balance
+    loss_function: subtrajectory_balance
     loss_params:
+      lambda_: 0.9
       log_reward_clip: 10.0
     max_iterations: 4000
+    modifications: none
+    modifications_params: {}
     num_preferences_per_batch: 16
     num_seeds: 5
     optimizer: adam
     preference_distribution: dirichlet
     regularization: entropy
     regularization_params:
-      beta: 0.05
+      beta: 0.01
     sampling_strategy: categorical
     task: hypergrid
   hypotheses:
@@ -223,12 +226,13 @@ config:
   metrics:
     primary:
     - mode_coverage_entropy
+    - preference_aligned_spread
     - trajectory_diversity_score
-    - hypervolume
+    - flow_concentration_index
     - quality_diversity_score
     secondary:
-    - preference_aligned_spread
-    - flow_concentration_index
+    - quality_diversity_score
+    - hypervolume
     - diversity_efficiency_ratio
     - replay_buffer_diversity
   next_steps:
@@ -261,4 +265,4 @@ seeds:
 - 264
 - 375
 - 486
-timestamp: '2025-11-01T10:43:49.022446'
+timestamp: '2025-11-03T07:15:11.551753'
