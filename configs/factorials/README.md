@@ -11,15 +11,15 @@ After completing the ablation studies (capacity, sampling, loss), we identified 
 From previous ablation studies, we identified:
 
 ### Capacity Ablation
-- **Winner**: Medium capacity (128 hidden dim, 4 layers, concat conditioning)
-- **Alternative**: Large capacity for complex tasks
+- **Winner**: Large capacity (128 hidden dim, 4 layers, concat conditioning)
+- **Alternative**: Very large capacity for complex tasks
 
 ### Sampling Ablation
 - **Winner**: temp_high (temperature=2.0, categorical sampling)
 - **Key insight**: Higher temperature increases exploration and diversity
 
 ### Loss Ablation
-- **Expected winner**: SubTB(λ=0.9) + Entropy(β=0.05)
+- **Expected winner**: SubTB(λ=0.9) + Entropy(β=0.01)
 - **Alternative**: Trajectory Balance with moderate entropy
 
 ## Factorial Experiment Types

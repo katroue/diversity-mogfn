@@ -1,0 +1,272 @@
+[
+  {
+    "exp_name": "small_tb_seed42",
+    "condition": "small_tb",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_tb_seed153",
+    "condition": "small_tb",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_tb_seed264",
+    "condition": "small_tb",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_tb_seed375",
+    "condition": "small_tb",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_tb_seed486",
+    "condition": "small_tb",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_seed42",
+    "condition": "small_subtb",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_seed153",
+    "condition": "small_subtb",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_seed264",
+    "condition": "small_subtb",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_seed375",
+    "condition": "small_subtb",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_seed486",
+    "condition": "small_subtb",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_entropy_seed42",
+    "condition": "small_subtb_entropy",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_entropy_seed153",
+    "condition": "small_subtb_entropy",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_entropy_seed264",
+    "condition": "small_subtb_entropy",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_entropy_seed375",
+    "condition": "small_subtb_entropy",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "small_subtb_entropy_seed486",
+    "condition": "small_subtb_entropy",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_tb_seed42",
+    "condition": "medium_tb",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_tb_seed153",
+    "condition": "medium_tb",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_tb_seed264",
+    "condition": "medium_tb",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_tb_seed375",
+    "condition": "medium_tb",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_tb_seed486",
+    "condition": "medium_tb",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_seed42",
+    "condition": "medium_subtb",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_seed153",
+    "condition": "medium_subtb",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_seed264",
+    "condition": "medium_subtb",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_seed375",
+    "condition": "medium_subtb",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_seed486",
+    "condition": "medium_subtb",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_entropy_seed42",
+    "condition": "medium_subtb_entropy",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_entropy_seed153",
+    "condition": "medium_subtb_entropy",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_entropy_seed264",
+    "condition": "medium_subtb_entropy",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_entropy_seed375",
+    "condition": "medium_subtb_entropy",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "medium_subtb_entropy_seed486",
+    "condition": "medium_subtb_entropy",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_tb_seed42",
+    "condition": "large_tb",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_tb_seed153",
+    "condition": "large_tb",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_tb_seed264",
+    "condition": "large_tb",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_tb_seed375",
+    "condition": "large_tb",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_tb_seed486",
+    "condition": "large_tb",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_seed42",
+    "condition": "large_subtb",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_seed153",
+    "condition": "large_subtb",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_seed264",
+    "condition": "large_subtb",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_seed375",
+    "condition": "large_subtb",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_seed486",
+    "condition": "large_subtb",
+    "seed": 486,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_entropy_seed42",
+    "condition": "large_subtb_entropy",
+    "seed": 42,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_entropy_seed153",
+    "condition": "large_subtb_entropy",
+    "seed": 153,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_entropy_seed264",
+    "condition": "large_subtb_entropy",
+    "seed": 264,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_entropy_seed375",
+    "condition": "large_subtb_entropy",
+    "seed": 375,
+    "error": "'temperature'"
+  },
+  {
+    "exp_name": "large_subtb_entropy_seed486",
+    "condition": "large_subtb_entropy",
+    "seed": 486,
+    "error": "'temperature'"
+  }
+]

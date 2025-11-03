@@ -3,13 +3,13 @@
 Run factorial experiments for Multi-Objective GFlowNets.
 
 This script runs factorial experiments that test interactions between
-multiple factors (e.g., capacity × sampling temperature).
+multiple factors (e.g., capacity × sampling temperature, capacity × loss function, sampling x loss function).
 
 Usage:
     # Run capacity × sampling factorial
     python scripts/factorials/hypergrid/run_factorial_experiment.py \
-        --config configs/factorials/capacity_sampling_2way.yaml \
-        --output_dir results/factorials/capacity_sampling
+        --config configs/factorials/capacity_loss_2way.yaml \
+        --output_dir results/factorials/capacity_loss
 
     # Dry run to preview
     python scripts/factorials/hypergrid/run_factorial_experiment.py \
@@ -147,16 +147,33 @@ def create_experiment_configs(config: dict,
 
 
 def run_single_experiment(exp_config: dict,
-                         output_dir: Path,
-                         config: dict,
-                         device: str = 'cpu') -> dict:
+                        output_dir: Path,
+                        config: dict,
+                        device: str = 'cpu') -> dict:
     """
     Run a single experiment configuration.
+
+    This function handles multiple factorial types (capacity_sampling, capacity_loss, sampling_loss)
+    by using .get() with sensible defaults for parameters that may not be present in all configs.
+
+    Default values:
+        - temperature: 1.0
+        - sampling_strategy: 'categorical'
+        - conditioning: 'concat'
+        - preference_distribution: 'dirichlet'
+        - dirichlet_alpha: 1.5
+        - learning_rate: 0.001
+        - loss_function: 'trajectory_balance'
+        - gradient_clip: 10.0
+        - max_iterations: 5000
+        - batch_size: 128
+        - num_preferences_per_batch: 16
+        - final_eval_samples: 10000
 
     Args:
         exp_config: Experiment configuration
         output_dir: Output directory for this experiment
-        config: Full factorial configuration
+        config: Full factorial configuration (unused, kept for compatibility)
         device: Device to use for training
 
     Returns:
@@ -209,6 +226,7 @@ def run_single_experiment(exp_config: dict,
     )
 
     # Create MOGFN model
+    # Use .get() with defaults for parameters that may not be in all factorial configs
     mogfn = MOGFN_PC(
         state_dim=env.state_dim,
         num_objectives=env.num_objectives,
@@ -216,25 +234,26 @@ def run_single_experiment(exp_config: dict,
         num_actions=env.num_actions,
         num_layers=exp_config['num_layers'],
         preference_encoding='vanilla',
-        conditioning_type=exp_config['conditioning'],
-        temperature=exp_config['temperature'],
-        sampling_strategy=exp_config['sampling_strategy']
+        conditioning_type=exp_config.get('conditioning', 'concat'),
+        temperature=exp_config.get('temperature', 1.0),  # Default to 1.0 if not specified
+        sampling_strategy=exp_config.get('sampling_strategy', 'categorical')  # Default to categorical
     ).to(device)
 
     # Count parameters
     num_params = sum(p.numel() for p in mogfn.parameters())
 
     # Create preference sampler
+    # Use .get() with defaults for parameters that may not be in all factorial configs
     pref_sampler = PreferenceSampler(
         num_objectives=env.num_objectives,
-        distribution=exp_config['preference_distribution'],
-        alpha=exp_config['dirichlet_alpha']
+        distribution=exp_config.get('preference_distribution', 'dirichlet'),
+        alpha=exp_config.get('dirichlet_alpha', 1.5)
     )
 
     # Create optimizer
     optimizer = torch.optim.Adam(
         mogfn.parameters(),
-        lr=exp_config['learning_rate']
+        lr=exp_config.get('learning_rate', 0.001)
     )
 
     # Create trainer
@@ -243,29 +262,29 @@ def run_single_experiment(exp_config: dict,
         env=env,
         preference_sampler=pref_sampler,
         optimizer=optimizer,
-        loss_function=exp_config['loss_function'],
+        loss_function=exp_config.get('loss_function', 'trajectory_balance'),
         loss_params=exp_config.get('loss_params', {}),
         regularization=exp_config.get('regularization', 'none'),
         regularization_params=exp_config.get('regularization_params', {}),
         modifications=exp_config.get('modifications', 'none'),
         modifications_params=exp_config.get('modifications_params', {}),
-        gradient_clip=exp_config['gradient_clip']
+        gradient_clip=exp_config.get('gradient_clip', 10.0)
     )
 
     # Training
     start_time = datetime.now()
 
     training_history = trainer.train(
-        num_iterations=exp_config['max_iterations'],
-        batch_size=exp_config['batch_size'],
-        num_preferences_per_batch=exp_config['num_preferences_per_batch'],
+        num_iterations=exp_config.get('max_iterations', 5000),
+        batch_size=exp_config.get('batch_size', 128),
+        num_preferences_per_batch=exp_config.get('num_preferences_per_batch', 16),
         log_every=exp_config.get('eval_every', 500)
     )
 
     training_time = (datetime.now() - start_time).total_seconds()
 
     # Evaluation
-    eval_results = trainer.evaluate(num_samples=exp_config['final_eval_samples'])
+    eval_results = trainer.evaluate(num_samples=exp_config.get('final_eval_samples', 10000))
 
     objectives_tensor = eval_results['objectives']
     preferences_tensor = eval_results['preferences']

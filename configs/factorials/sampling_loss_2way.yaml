@@ -91,7 +91,7 @@ factors:
 
       subtb:
         label: "SubTB(λ=0.9)"
-        loss_function: "subtrajectory_balance"
+        loss_function: "subtrajectory_balance" # best found from loss ablation group 1
         loss_params:
           lambda_: 0.9
           log_reward_clip: 10.0
@@ -100,13 +100,13 @@ factors:
 
       subtb_entropy:
         label: "SubTB(λ=0.9) + Entropy"
-        loss_function: "subtrajectory_balance"
+        loss_function: "subtrajectory_balance" # best found from loss ablation group 1
         loss_params:
           lambda_: 0.9
           log_reward_clip: 10.0
         regularization: "entropy"
         regularization_params:
-          beta: 0.05
+          beta: 0.01 # best found from loss ablation group 2
 
 # ============================================================================
 # EXPERIMENTAL CONDITIONS
@@ -284,7 +284,7 @@ expected_results:
     implication: "Loss function choice affects optimal sampling strategy"
 
   best_case:
-    condition: "veryhigh_subtb_entropy" or "high_subtb_entropy"
+    condition: "veryhigh_subtb_entropy" #or "high_subtb_entropy"
     expected_mce: ">0.5"
     expected_qds: ">0.65"
 

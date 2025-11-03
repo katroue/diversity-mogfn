@@ -1,0 +1,324 @@
+# ============================================================================
+# TWO-WAY FACTORIAL: SAMPLING × LOSS (N-GRAMS)
+# ============================================================================
+# Purpose: Test interaction between sampling strategy and loss function
+#          on the N-grams sequence generation environment
+#
+# Research Question: Does optimal loss function depend on exploration strategy
+#                   for discrete sequence generation?
+# Hypothesis: High exploration may work better with certain loss functions
+#            (e.g., SubTB may need less exploration due to better credit assignment)
+#
+# Design: 3 × 3 factorial
+#   Factor A (Temperature): 1.0, 2.0, 5.0
+#   Factor B (Loss): TB, SubTB(0.9), SubTB(0.9)+Entropy
+#   Total: 9 combinations × 5 seeds = 45 runs
+# ============================================================================
+
+experiment_name: "ngrams_sampling_loss_2way"
+study_type: "factorial"
+
+# ============================================================================
+# FIXED PARAMETERS (Controlled across all conditions)
+# ============================================================================
+
+fixed:
+  # Task: N-grams sequence generation
+  task: "ngrams"
+  vocab_size: 4                # Vocabulary: A, B, C, D
+  seq_length: 8                # Generate 8-character sequences
+  ngram_length: 2              # Count bigrams
+  normalize_rewards: true      # Normalize counts by max possible
+  # objective_patterns will be auto-generated: ['AA', 'BB', 'AB', 'BA']
+
+  # Model architecture (FIXED at medium capacity)
+  hidden_dim: 128
+  num_layers: 4
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference sampling (FIXED)
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training
+  max_iterations: 8000  # Increased from 4000 due to 64x larger state space
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Two Factors
+# ============================================================================
+
+factors:
+
+  # Factor A: Sampling Temperature
+  temperature:
+    description: "Exploration temperature for character selection"
+    levels:
+
+      low:
+        label: "Low (τ=1.0)"
+        temperature: 1.0
+        description: "Standard softmax sampling"
+
+      high:
+        label: "High (τ=2.0)"
+        temperature: 2.0
+        description: "Increased exploration"
+
+      very_high:
+        label: "Very High (τ=5.0)"
+        temperature: 5.0
+        description: "Maximum exploration (nearly uniform)"
+
+  # Factor B: Loss Function
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+        modifications: "none"
+        modifications_params: {}
+
+      subtb:
+        label: "SubTB(λ=0.9)"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+        modifications: "none"
+        modifications_params: {}
+
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+        modifications: "none"
+        modifications_params: {}
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (All 9 combinations)
+# ============================================================================
+
+conditions:
+  # Format: {temperature_level}_{loss_level}
+
+  # Low temperature × All losses
+  - name: "low_tb"
+    temperature: "low"
+    loss: "tb"
+
+  - name: "low_subtb"
+    temperature: "low"
+    loss: "subtb"
+
+  - name: "low_subtb_entropy"
+    temperature: "low"
+    loss: "subtb_entropy"
+
+  # High temperature × All losses
+  - name: "high_tb"
+    temperature: "high"
+    loss: "tb"
+
+  - name: "high_subtb"
+    temperature: "high"
+    loss: "subtb"
+
+  - name: "high_subtb_entropy"
+    temperature: "high"
+    loss: "subtb_entropy"
+
+  # Very high temperature × All losses
+  - name: "veryhigh_tb"
+    temperature: "very_high"
+    loss: "tb"
+
+  - name: "veryhigh_subtb"
+    temperature: "very_high"
+    loss: "subtb"
+
+  - name: "veryhigh_subtb_entropy"
+    temperature: "very_high"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy  # MCE: Unique sequences
+    - preference_aligned_spread  # PAS: Preference-aligned diversity
+    - trajectory_diversity_score  # TDS: Path diversity
+    - quality_diversity_score  # QDS: Combined metric
+
+  secondary:
+    - hypervolume  # Quality metric
+    - final_loss  # Training convergence
+    - flow_concentration_index  # FCI: Flow concentration
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+
+  research_questions:
+
+    rq1:
+      question: "Does temperature have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "temperature"
+      metric: "mode_coverage_entropy"
+
+    rq2:
+      question: "Does loss function have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "loss"
+      metric: "mode_coverage_entropy"
+
+    rq3:
+      question: "Is there an interaction between temperature and loss?"
+      test: "two_way_anova"
+      factors: ["temperature", "loss"]
+      metric: "mode_coverage_entropy"
+      interaction_term: "temperature:loss"
+
+  statistical_tests:
+
+    - name: "factorial_anova"
+      test: "two_way_anova"
+      formula: "mce ~ C(temperature) + C(loss) + C(temperature):C(loss)"
+      alpha: 0.05
+
+    - name: "quality_tradeoff"
+      description: "Check quality-diversity tradeoff"
+      test: "correlation"
+      variables: ["hypervolume", "mce"]
+      by_factors: ["temperature", "loss"]
+
+# ============================================================================
+# HYPOTHESES
+# ============================================================================
+
+hypotheses:
+
+  h1_main_temperature:
+    statement: "Temperature has a significant main effect on diversity"
+    prediction: "High > Low, VeryHigh ≈ High (diminishing returns)"
+    rationale: "Higher temperature increases exploration in discrete action space"
+
+  h2_main_loss:
+    statement: "Loss function has a significant main effect on diversity"
+    prediction: "SubTB+Entropy > SubTB > TB"
+    rationale: "SubTB + entropy provides better credit assignment and exploration"
+
+  h3_interaction:
+    statement: "There is an interaction between temperature and loss"
+    prediction: "TB benefits more from high temperature; SubTB+Entropy works well even at low temperature"
+    rationale: "Better credit assignment reduces need for exploration"
+
+  h4_entropy_temperature:
+    statement: "Entropy regularization reduces need for high temperature"
+    prediction: "SubTB+Entropy: Low ≈ High, TB: High >> Low"
+    rationale: "Entropy provides intrinsic exploration, reducing dependence on temperature"
+
+  h5_discrete_space:
+    statement: "N-grams shows stronger temperature effects than HyperGrid"
+    prediction: "Larger differences between temperature levels for N-grams"
+    rationale: "Discrete action space more sensitive to temperature scaling"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 45
+  estimated_time_per_run: "30 minutes"  # 8000 iterations (2x base time)
+  total_time_sequential: "23 hours"
+  total_time_parallel: "2.3 hours"  # With 10 parallel jobs
+
+  recommended_parallelization:
+    strategy: "condition_parallel"
+    max_parallel: 10
+
+  storage_per_run: "~30 MB"
+  total_storage: "~1.4 GB"
+
+# ============================================================================
+# EXPECTED RESULTS
+# ============================================================================
+
+expected_results:
+
+  best_case:
+    condition: "high_subtb_entropy"
+    expected_mce: ">0.45"
+    expected_qds: ">0.65"
+    rationale: "Balanced exploration + best loss + intrinsic exploration"
+
+  worst_case:
+    condition: "low_tb"
+    expected_mce: "<0.2"
+    expected_qds: "<0.4"
+    rationale: "Limited exploration + simple loss"
+
+  interaction_examples:
+
+    scenario_1:
+      description: "SubTB+Entropy less sensitive to temperature"
+      pattern: "flat line across temperatures for SubTB+Entropy, increasing line for TB"
+      interpretation: "Entropy regularization compensates for low temperature"
+
+    scenario_2:
+      description: "Very high temperature hurts quality for all losses"
+      pattern: "hypervolume decreases at very_high temperature"
+      interpretation: "Too much exploration sacrifices quality"
+
+# ============================================================================
+# NOTES
+# ============================================================================
+
+notes:
+  key_comparisons:
+    - "Compare with HyperGrid sampling_loss to identify environment-specific effects"
+    - "Temperature effect may be stronger for N-grams (discrete actions)"
+    - "Watch for quality-diversity tradeoff at very_high temperature"
+
+  interpretation:
+    - "If interaction found: Loss function choice depends on exploration budget"
+    - "If no interaction: Can independently optimize loss and temperature"
+    - "Entropy regularization may be particularly effective for discrete spaces"
+
+  practical_implications:
+    - "If SubTB+Entropy robust to temperature: Use it with standard τ=1.0"
+    - "If TB requires high temperature: SubTB+Entropy is more practical choice"
+    - "Very high temperature likely to hurt quality without improving diversity much"

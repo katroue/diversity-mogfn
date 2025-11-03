@@ -1,0 +1,220 @@
+conditions: &id001
+- capacity: small
+  loss: tb
+  name: small_tb
+- capacity: small
+  loss: subtb
+  name: small_subtb
+- capacity: small
+  loss: subtb_entropy
+  name: small_subtb_entropy
+- capacity: medium
+  loss: tb
+  name: medium_tb
+- capacity: medium
+  loss: subtb
+  name: medium_subtb
+- capacity: medium
+  loss: subtb_entropy
+  name: medium_subtb_entropy
+- capacity: large
+  loss: tb
+  name: large_tb
+- capacity: large
+  loss: subtb
+  name: large_subtb
+- capacity: large
+  loss: subtb_entropy
+  name: large_subtb_entropy
+config:
+  analysis:
+    research_questions:
+      rq1:
+        factor: factor1_name
+        metric: mode_coverage_entropy
+        question: Does Factor 1 have a main effect?
+        test: one_way_anova
+      rq2:
+        factor: factor2_name
+        metric: mode_coverage_entropy
+        question: Does Factor 2 have a main effect?
+        test: one_way_anova
+      rq3:
+        factors:
+        - factor1_name
+        - factor2_name
+        interaction_term: factor1_name:factor2_name
+        metric: mode_coverage_entropy
+        question: Is there an interaction between factors?
+        test: two_way_anova
+    statistical_tests:
+    - alpha: 0.05
+      formula: mce ~ C(factor1_name) + C(factor2_name) + C(factor1_name):C(factor2_name)
+      name: factorial_anova
+      test: two_way_anova
+    - factor: factor1_name
+      metric: mce
+      name: posthoc_factor1
+      test: tukey_hsd
+    - factor: factor2_name
+      metric: mce
+      name: posthoc_factor2
+      test: tukey_hsd
+    visualizations:
+    - hue: factor2_name
+      name: interaction_plot
+      save: figures/interaction_plot.pdf
+      type: interaction_plot
+      x: factor1_name
+      y: mce
+    - name: heatmap
+      pivot:
+        columns: factor2_name
+        index: factor1_name
+        values: mce
+      save: figures/heatmap.pdf
+      type: heatmap
+  conditions: *id001
+  expected_results:
+    best_case:
+      condition: condition_name
+      expected_mce: '>0.5'
+      expected_qds: '>0.65'
+    scenario_interaction:
+      description: Optimal level of one factor depends on the other
+      examples:
+      - Factor1=X works best when Factor2=A
+      - Factor1=Y works best when Factor2=B
+      implication: Need to consider factors together
+    scenario_no_interaction:
+      best_combination: best_level_factor1 + best_level_factor2
+      description: Factors have independent additive effects
+      implication: Use best from each factor independently
+  experiment_name: capacity_loss_2way
+  factors:
+    capacity:
+      description: "Model size (hidden dim \xD7 num layers)"
+      levels:
+        large:
+          activation: relu
+          conditioning: concat
+          hidden_dim: 128
+          label: "Large (128\xD74)"
+          num_layers: 4
+          num_parameters: ~525K
+        medium:
+          activation: relu
+          conditioning: concat
+          hidden_dim: 64
+          label: "Medium (64\xD73)"
+          num_layers: 3
+          num_parameters: ~68K
+        small:
+          activation: relu
+          conditioning: concat
+          hidden_dim: 32
+          label: "Small (32\xD72)"
+          num_layers: 2
+          num_parameters: ~519
+    loss:
+      description: GFlowNet training objective
+      levels:
+        subtb:
+          label: "SubTB(\u03BB=0.9)"
+          loss_function: subtrajectory_balance
+          loss_params:
+            lambda_: 0.9
+            log_reward_clip: 10.0
+          regularization: none
+          regularization_params: {}
+        subtb_entropy:
+          label: "SubTB(\u03BB=0.9) + Entropy"
+          loss_function: subtrajectory_balance
+          loss_params:
+            lambda_: 0.9
+            log_reward_clip: 10.0
+          regularization: entropy
+          regularization_params:
+            beta: 0.01
+        tb:
+          label: Trajectory Balance
+          loss_function: trajectory_balance
+          loss_params:
+            log_reward_clip: 10.0
+          regularization: none
+          regularization_params: {}
+  fixed:
+    activation: relu
+    base_seed: 42
+    batch_size: 128
+    conditioning: concat
+    dirichlet_alpha: 1.5
+    eval_every: 500
+    eval_samples: 1000
+    final_eval_samples: 10000
+    gradient_clip: 10.0
+    grid_size:
+    - 32
+    - 32
+    hidden_dim: 128
+    learning_rate: 0.001
+    max_iterations: 4000
+    num_layers: 4
+    num_preferences_per_batch: 16
+    num_seeds: 5
+    optimizer: adam
+    preference_distribution: dirichlet
+    sampling_strategy: categorical
+    task: hypergrid
+  hypotheses:
+    h1_main_factor1:
+      prediction: Level X > Level Y
+      rationale: Why you expect this result
+      statement: Factor 1 has a significant main effect on diversity
+    h2_main_factor2:
+      prediction: Level A > Level B
+      rationale: Why you expect this result
+      statement: Factor 2 has a significant main effect on diversity
+    h3_interaction:
+      expected_pattern: Describe what interaction plot should look like
+      prediction: Describe expected interaction pattern
+      rationale: Why factors should interact
+      statement: There is an interaction between Factor 1 and Factor 2
+  metrics:
+    primary:
+    - mode_coverage_entropy
+    - hypervolume
+    - average_pairwise_distance
+    - flow_concentration_index
+    secondary:
+    - preference_aligned_spread
+    - multi_path_diversity
+    - spacing
+    - quality_diversity_score
+  next_steps:
+    if_interaction_found:
+    - Investigate mechanism of interaction
+    - Consider interaction in final model selection
+    - Report as key finding in paper
+    if_no_interaction:
+    - Select best level from each factor independently
+    - Proceed to next factorial experiment
+    paper_contribution:
+    - Novel finding about factor interaction
+    - Practical guidelines for practitioners
+  resources:
+    estimated_time_per_run: 24 minutes
+    recommended_parallelization:
+      max_parallel: 10
+      strategy: condition_parallel
+    total_runs: 45
+    total_time_parallel: 1 hour
+    total_time_sequential: 8 hours
+  study_type: factorial
+seeds:
+- 42
+- 153
+- 264
+- 375
+- 486
+timestamp: '2025-11-03T15:43:10.829458'

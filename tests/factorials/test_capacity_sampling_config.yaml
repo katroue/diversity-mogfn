@@ -1,0 +1,156 @@
+# ============================================================================
+# TEST CONFIGURATION: CAPACITY × SAMPLING FACTORIAL
+# ============================================================================
+# Purpose: Quick test to identify which configurations suffer from mode collapse
+#
+# Reduced settings for fast testing:
+#   - 1000 iterations (instead of 4000)
+#   - 2 seeds (instead of 5)
+#   - All 9 conditions tested
+#
+# Expected runtime: ~3 hours (9 conditions × 2 seeds × 10 min/run)
+# ============================================================================
+
+experiment_name: "test_capacity_sampling_2way"
+study_type: "factorial"
+
+# ============================================================================
+# FIXED PARAMETERS (Same as full experiment, but fewer iterations)
+# ============================================================================
+
+fixed:
+  # Task
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Loss function (BEST from loss ablation)
+  loss_function: "subtrajectory_balance"
+  loss_params:
+    lambda_: 0.9
+    log_reward_clip: 10.0
+  regularization: "entropy"
+  regularization_params:
+    beta: 0.01
+  modifications: "none"
+  modifications_params: {}
+
+  # Preference sampling (FIXED)
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training (REDUCED for testing)
+  max_iterations: 1000  # Reduced from 4000 for quick testing
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 250  # More frequent for testing
+  eval_samples: 1000
+  final_eval_samples: 5000  # Reduced from 10000
+
+  # Seeds (REDUCED for testing)
+  num_seeds: 2  # Reduced from 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Two Factors (Same as full experiment)
+# ============================================================================
+
+factors:
+
+  # Factor A: Model Capacity
+  capacity:
+    description: "Model size (hidden dim × num layers)"
+    levels:
+
+      small:
+        label: "Small (32×2)"
+        hidden_dim: 32
+        num_layers: 2
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~519
+
+      medium:
+        label: "Medium (128×4)"
+        hidden_dim: 128
+        num_layers: 4
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~68K
+
+      large:
+        label: "Large (256×6)"
+        hidden_dim: 256
+        num_layers: 6
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~525K
+
+  # Factor B: Sampling Temperature
+  temperature:
+    description: "Exploration temperature for action sampling"
+    levels:
+
+      low:
+        label: "Low (τ=1.0)"
+        temperature: 1.0
+        description: "Balanced exploration-exploitation"
+
+      high:
+        label: "High (τ=2.0)"
+        temperature: 2.0
+        description: "Increased exploration"
+
+      very_high:
+        label: "Very High (τ=5.0)"
+        temperature: 5.0
+        description: "Maximum exploration"
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (All 9 combinations)
+# ============================================================================
+
+conditions:
+  # Small capacity × All temperatures
+  - name: "small_low"
+    capacity: "small"
+    temperature: "low"
+
+  - name: "small_high"
+    capacity: "small"
+    temperature: "high"
+
+  - name: "small_veryhigh"
+    capacity: "small"
+    temperature: "very_high"
+
+  # Medium capacity × All temperatures
+  - name: "medium_low"
+    capacity: "medium"
+    temperature: "low"
+
+  - name: "medium_high"
+    capacity: "medium"
+    temperature: "high"
+
+  - name: "medium_veryhigh"
+    capacity: "medium"
+    temperature: "very_high"
+
+  # Large capacity × All temperatures
+  - name: "large_low"
+    capacity: "large"
+    temperature: "low"
+
+  - name: "large_high"
+    capacity: "large"
+    temperature: "high"
+
+  - name: "large_veryhigh"
+    capacity: "large"
+    temperature: "very_high"

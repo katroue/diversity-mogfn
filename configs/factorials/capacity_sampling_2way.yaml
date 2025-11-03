@@ -78,20 +78,20 @@ factors:
         num_parameters: ~519  # Approximate
 
       medium:
-        label: "Medium (128×4)"
+          label: "Medium (128×4)"
+          hidden_dim: 64
+          num_layers: 3
+          conditioning: "concat"
+          activation: "relu"
+          num_parameters: ~68K  # No but idc
+
+      large:
+        label: "Large (128×4)"
         hidden_dim: 128
         num_layers: 4
         conditioning: "concat"
         activation: "relu"
         num_parameters: ~68K  # Approximate
-
-      large:
-        label: "Large (256×6)"
-        hidden_dim: 256
-        num_layers: 6
-        conditioning: "concat"
-        activation: "relu"
-        num_parameters: ~525K  # Approximate
 
   # Factor B: Sampling Temperature
   temperature:
@@ -118,7 +118,7 @@ factors:
 # ============================================================================
 
 conditions:
-  # Format: {factor1_level}_{factor2_level}
+  # Format: capacity × temperature
 
   # Small capacity × All temperatures
   - name: "small_low"
@@ -163,14 +163,13 @@ conditions:
 # METRICS
 # ============================================================================
 
-metrics:
+metrics: # according to best metrics for capacity and sampling ablations
   primary:
     - mode_coverage_entropy  # MCE
     - preference_aligned_spread  # PAS
     - trajectory_diversity_score  # TDS
     - flow_concentration_index  # FCI
     - quality_diversity_score  # QDS (composite)
-
   secondary:
     - quality_diversity_score  # QDS (composite)
     - hypervolume  # Quality

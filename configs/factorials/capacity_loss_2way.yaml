@@ -1,0 +1,321 @@
+# ============================================================================
+# FACTORIAL EXPERIMENT TEMPLATE
+# ============================================================================
+# Use this template to create new factorial experiments
+#
+# Instructions:
+#   1. Copy this file and rename it (e.g., my_factorial.yaml)
+#   2. Update experiment_name and description
+#   3. Define your factors and levels
+#   4. Specify all experimental conditions
+#   5. Define hypotheses and analysis plan
+# ============================================================================
+
+experiment_name: "capacity_loss_2way"  # CHANGE THIS
+study_type: "factorial"
+
+# ============================================================================
+# FIXED PARAMETERS (Same across all conditions)
+# ============================================================================
+
+fixed:
+  # Task
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model architecture (BEST from capacity ablation)
+  hidden_dim: 128
+  num_layers: 4
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training
+  max_iterations: 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN
+# ============================================================================
+
+factors:
+
+  # Factor 1: Model Capacity
+  capacity:
+    description: "Model size (hidden dim × num layers)"
+    levels:
+
+      small:
+        label: "Small (32×2)"
+        hidden_dim: 32
+        num_layers: 2
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~519  # Approximate
+
+      medium:
+        label: "Medium (64×3)"
+        hidden_dim: 64
+        num_layers: 3
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~68K  # Approximate
+
+      large:
+        label: "Large (128×4)"
+        hidden_dim: 128
+        num_layers: 4
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~525K  # Approximate
+
+  # Factor B: Loss Function
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb:
+        label: "SubTB(λ=0.9)"
+        loss_function: "subtrajectory_balance" # best found from loss ablation group 1
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance" # best found from loss ablation group 1
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01 # best found from loss ablation group 2
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS
+# ============================================================================
+
+conditions:
+
+  # Small capacity × All losses
+  - name: "small_tb"
+    capacity: "small"
+    loss: "tb"
+
+  - name: "small_subtb"
+    capacity: "small"
+    loss: "subtb"
+
+  - name: "small_subtb_entropy"
+    capacity: "small"
+    loss: "subtb_entropy"
+
+  # Medium capacity × All losses
+  - name: "medium_tb"
+    capacity: "medium"
+    loss: "tb"
+
+  - name: "medium_subtb"
+    capacity: "medium"
+    loss: "subtb"
+
+  - name: "medium_subtb_entropy"
+    capacity: "medium"
+    loss: "subtb_entropy"
+
+  # Large capacity × All losses
+  - name: "large_tb"
+    capacity: "large"
+    loss: "tb"
+
+  - name: "large_subtb"
+    capacity: "large"
+    loss: "subtb"
+
+  - name: "large_subtb_entropy"
+    capacity: "large"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy  # Main diversity metric
+    - hypervolume  # Main quality metric
+    - average_pairwise_distance # Spread within modes
+    - flow_concentration_index  # Mode sharpness
+
+  secondary:
+    - preference_aligned_spread
+    - multi_path_diversity
+    - spacing
+    - quality_diversity_score
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+
+  research_questions:
+
+    rq1:
+      question: "Does Factor 1 have a main effect?"
+      test: "one_way_anova"
+      factor: "factor1_name"
+      metric: "mode_coverage_entropy"
+
+    rq2:
+      question: "Does Factor 2 have a main effect?"
+      test: "one_way_anova"
+      factor: "factor2_name"
+      metric: "mode_coverage_entropy"
+
+    rq3:
+      question: "Is there an interaction between factors?"
+      test: "two_way_anova"  # or three_way_anova
+      factors: ["factor1_name", "factor2_name"]
+      metric: "mode_coverage_entropy"
+      interaction_term: "factor1_name:factor2_name"
+
+  statistical_tests:
+
+    - name: "factorial_anova"
+      test: "two_way_anova"  # Update based on number of factors
+      formula: "mce ~ C(factor1_name) + C(factor2_name) + C(factor1_name):C(factor2_name)"
+      alpha: 0.05
+
+    - name: "posthoc_factor1"
+      test: "tukey_hsd"
+      factor: "factor1_name"
+      metric: "mce"
+
+    - name: "posthoc_factor2"
+      test: "tukey_hsd"
+      factor: "factor2_name"
+      metric: "mce"
+
+  visualizations:
+
+    - name: "interaction_plot"
+      type: "interaction_plot"
+      x: "factor1_name"
+      y: "mce"
+      hue: "factor2_name"
+      save: "figures/interaction_plot.pdf"
+
+    - name: "heatmap"
+      type: "heatmap"
+      pivot:
+        index: "factor1_name"
+        columns: "factor2_name"
+        values: "mce"
+      save: "figures/heatmap.pdf"
+
+# ============================================================================
+# HYPOTHESES
+# ============================================================================
+
+hypotheses:
+
+  h1_main_factor1:
+    statement: "Factor 1 has a significant main effect on diversity"
+    prediction: "Level X > Level Y"
+    rationale: "Why you expect this result"
+
+  h2_main_factor2:
+    statement: "Factor 2 has a significant main effect on diversity"
+    prediction: "Level A > Level B"
+    rationale: "Why you expect this result"
+
+  h3_interaction:
+    statement: "There is an interaction between Factor 1 and Factor 2"
+    prediction: "Describe expected interaction pattern"
+    rationale: "Why factors should interact"
+    expected_pattern: "Describe what interaction plot should look like"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  # Calculate: (num_levels_factor1) × (num_levels_factor2) × num_seeds
+  total_runs: 45 # (3x3x5)
+  estimated_time_per_run: "24 minutes"
+  total_time_sequential: "8 hours"  # UPDATE
+  total_time_parallel: "1 hour"  # UPDATE (with parallelization)
+
+  recommended_parallelization:
+    strategy: "condition_parallel"
+    max_parallel: 10
+
+# ============================================================================
+# EXPECTED RESULTS
+# ============================================================================
+
+expected_results:
+
+  scenario_no_interaction:
+    description: "Factors have independent additive effects"
+    best_combination: "best_level_factor1 + best_level_factor2"
+    implication: "Use best from each factor independently"
+
+  scenario_interaction:
+    description: "Optimal level of one factor depends on the other"
+    examples:
+      - "Factor1=X works best when Factor2=A"
+      - "Factor1=Y works best when Factor2=B"
+    implication: "Need to consider factors together"
+
+  best_case:
+    condition: "condition_name"  # Which condition is expected to be best
+    expected_mce: ">0.5"
+    expected_qds: ">0.65"
+
+# ============================================================================
+# NEXT STEPS
+# ============================================================================
+
+next_steps:
+
+  if_no_interaction:
+    - "Select best level from each factor independently"
+    - "Proceed to next factorial experiment"
+
+  if_interaction_found:
+    - "Investigate mechanism of interaction"
+    - "Consider interaction in final model selection"
+    - "Report as key finding in paper"
+
+  paper_contribution:
+    - "Novel finding about factor interaction"
+    - "Practical guidelines for practitioners"
