@@ -34,18 +34,18 @@ class NGrams(MultiObjectiveEnvironment):
     """
 
     def __init__(self,
-                 vocab_size: int = 4,
-                 seq_length: int = 8,
-                 ngram_length: int = 2,
-                 objective_patterns: Optional[List[str]] = None,
-                 normalize_rewards: bool = True):
+                vocab_size: int = 4,
+                seq_length: int = 8,
+                ngram_length: int = 2,
+                objective_patterns: Optional[List[str]] = None,
+                normalize_rewards: bool = True):
         """
         Args:
             vocab_size: Size of vocabulary (e.g., 4 for A,B,C,D)
             seq_length: Length of sequences to generate
             ngram_length: Length of n-grams to count (2 for bigrams, 3 for trigrams)
             objective_patterns: List of n-gram patterns to use as objectives
-                               If None, uses default patterns based on vocab_size
+                            If None, uses default patterns based on vocab_size
             normalize_rewards: Whether to normalize objective counts by max possible
         """
         self.vocab_size = vocab_size
@@ -117,7 +117,7 @@ class NGrams(MultiObjectiveEnvironment):
         else:
             # General case: use first few homogeneous n-grams
             return [self.vocab[i] * self.ngram_length
-                   for i in range(min(self.vocab_size, 4))]
+                for i in range(min(self.vocab_size, 4))]
 
     def get_initial_state(self) -> torch.Tensor:
         """
@@ -262,9 +262,9 @@ class NGrams(MultiObjectiveEnvironment):
         return f"Count of '{self.objective_patterns[idx]}'"
 
     def visualize_samples(self,
-                         objectives: torch.Tensor,
-                         sequences: Optional[List[str]] = None,
-                         save_path: Optional[str] = None):
+                        objectives: torch.Tensor,
+                        sequences: Optional[List[str]] = None,
+                        save_path: Optional[str] = None):
         """
         Visualize sampled solutions in objective space.
 
@@ -281,15 +281,15 @@ class NGrams(MultiObjectiveEnvironment):
             # 2D scatter plot
             plt.figure(figsize=(8, 6))
             scatter = plt.scatter(objectives_np[:, 0], objectives_np[:, 1],
-                                 alpha=0.6, s=50, c='blue')
+                                alpha=0.6, s=50, c='blue')
 
             # Annotate some points with sequences if provided
             if sequences and len(sequences) <= 20:
                 for i in range(min(len(sequences), 20)):
                     plt.annotate(sequences[i],
-                               (objectives_np[i, 0], objectives_np[i, 1]),
-                               fontsize=8, alpha=0.7,
-                               xytext=(5, 5), textcoords='offset points')
+                            (objectives_np[i, 0], objectives_np[i, 1]),
+                            fontsize=8, alpha=0.7,
+                            xytext=(5, 5), textcoords='offset points')
 
             plt.xlabel(f'Objective 1: {self.get_pattern_description(0)}')
             plt.ylabel(f'Objective 2: {self.get_pattern_description(1)}')
@@ -302,7 +302,7 @@ class NGrams(MultiObjectiveEnvironment):
             fig = plt.figure(figsize=(10, 8))
             ax = fig.add_subplot(111, projection='3d')
             ax.scatter(objectives_np[:, 0], objectives_np[:, 1], objectives_np[:, 2],
-                      alpha=0.6, s=50, c='blue')
+                    alpha=0.6, s=50, c='blue')
             ax.set_xlabel(f'Obj 1: {self.objective_patterns[0]}')
             ax.set_ylabel(f'Obj 2: {self.objective_patterns[1]}')
             ax.set_zlabel(f'Obj 3: {self.objective_patterns[2]}')
@@ -329,7 +329,7 @@ class NGrams(MultiObjectiveEnvironment):
             fig, ax = plt.subplots(figsize=(12, 6))
             for i in range(len(objectives_np)):
                 ax.plot(range(self._num_objectives), objectives_np[i],
-                       alpha=0.3, c='blue', linewidth=0.5)
+                    alpha=0.3, c='blue', linewidth=0.5)
             ax.set_xlabel('Objective Index')
             ax.set_ylabel('Objective Value (Normalized Count)')
             ax.set_title('N-grams Solutions (Parallel Coordinates)')

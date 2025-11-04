@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Run factorial experiments for Multi-Objective GFlowNets on N-grams environment.
+Run factorial experiments for Multi-Objective GFlowNets on Molecules environment.
 
 This script runs factorial experiments that test interactions between
 multiple factors (e.g., capacity x sampling temperature, capacity x loss function, sampling x loss function).
@@ -12,23 +12,23 @@ Supports all three factorial configurations:
 
 Usage:
     # Run capacity � loss factorial
-    python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_sampling_loss_2way.yaml \
-        --output_dir results/factorials/ngrams_sampling_loss
+    python scripts/factorials/molecules/run_factorial_molecules.py \
+        --config configs/factorials/molecules_capacity_sampling_2way.yaml \
+        --output_dir results/factorials/molecules_capacity_sampling
 
     # Dry run to preview
-    python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_capacity_sampling_2way.yaml \
+    python scripts/factorials/molecules/run_factorial_molecules.py \
+        --config configs/factorials/molecules_capacity_sampling_2way.yaml \
         --dry-run
 
     # Resume interrupted experiment
-    python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_capacity_sampling_2way.yaml \
+    python scripts/factorials/molecules/run_factorial_molecules.py \
+        --config configs/factorials/molecules_capacity_sampling_2way.yaml \
         --resume
 
     # Run specific conditions only
-    python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_capacity_sampling_2way.yaml \
+    python scripts/factorials/molecules/run_factorial_molecules.py \
+        --config configs/factorials/molecules_capacity_sampling_2way.yaml \
         --conditions small_low,medium_high
 """
 
@@ -193,7 +193,7 @@ def run_single_experiment(exp_config: dict,
     # Import training modules
     try:
         from src.models.mogfn_pc import MOGFN_PC, PreferenceSampler, MOGFNTrainer, MOGFNSampler
-        from src.environments.ngrams import NGrams
+        from src.environments.molecules import MoleculeFragments as Molecules
         from src.metrics.traditional import compute_all_traditional_metrics
         from src.metrics.trajectory import trajectory_diversity_score, multi_path_diversity
         from src.metrics.spatial import mode_coverage_entropy, pairwise_minimum_distance
@@ -226,21 +226,19 @@ def run_single_experiment(exp_config: dict,
 
     exp_name = exp_config['exp_name']
 
-    # Create N-grams environment
-    env = NGrams(
-        vocab_size=exp_config.get('vocab_size', 4),
-        seq_length=exp_config.get('seq_length', 8),
-        ngram_length=exp_config.get('ngram_length', 2),
-        objective_patterns=exp_config.get('objective_patterns', None),
-        normalize_rewards=exp_config.get('normalize_rewards', True)
+    # Create Molecules environment
+    env = Molecules(
+        max_fragments=exp_config.get('max_fragments', 8),
+        num_fragments_library=exp_config.get('num_fragments_library', 15),
+        objective_properties=exp_config.get('objective_properties', None),
+        use_rdkit=exp_config.get('use_rdkit', True)
     )
 
-    print(f"\n  Environment: N-grams")
-    print(f"    Vocabulary size: {env.vocab_size}")
-    print(f"    Sequence length: {env.seq_length}")
-    print(f"    N-gram length: {env.ngram_length}")
-    print(f"    Num objectives: {env.num_objectives}")
-    print(f"    Patterns: {env.objective_patterns}")
+    print(f"\n  Environment: Molecules")
+    print(f"    Max fragments: {env.max_fragments}")
+    print(f"    Num fragments in library: {env.num_fragments_library}")
+    print(f"    Objective properties: {env.objective_properties}")
+    print(f"    Use RDKit: {env.use_rdkit}")
 
     # Create MOGFN model
     # Use .get() with defaults for parameters that may not be in all factorial configs
@@ -311,11 +309,8 @@ def run_single_experiment(exp_config: dict,
     metrics = {}
 
     # Traditional metrics
-    # For N-grams, reference point depends on normalization
-    if env.normalize_rewards:
-        reference_point = np.array([1.1] * env.num_objectives)
-    else:
-        reference_point = np.array([env.max_count + 1.0] * env.num_objectives)
+    # For molecules, all objectives are normalized to [0, 1], so reference point is just above 1.0
+    reference_point = np.array([1.1] * env.num_objectives)
 
     traditional = compute_all_traditional_metrics(objectives, reference_point)
     metrics.update(traditional)
@@ -412,7 +407,7 @@ def run_factorial_experiment(config_path: Path,
                             conditions_filter: Optional[List[str]] = None,
                             device: str = 'cpu') -> None:
     """
-    Run complete factorial experiment for N-grams environment.
+    Run complete factorial experiment for Molecules environment.
 
     Args:
         config_path: Path to factorial configuration YAML
@@ -430,7 +425,7 @@ def run_factorial_experiment(config_path: Path,
     study_type = config.get('study_type', 'factorial')
 
     print(f"\n{'='*80}")
-    print(f"FACTORIAL EXPERIMENT (N-GRAMS): {experiment_name}")
+    print(f"FACTORIAL EXPERIMENT (MOLECULES): {experiment_name}")
     print(f"Study Type: {study_type}")
     print(f"{'='*80}\n")
 

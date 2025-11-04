@@ -1,0 +1,49 @@
+{
+  "environment": "molecules",
+  "max_fragments": 8,
+  "num_fragments_library": 15,
+  "use_rdkit": true,
+  "objective_properties": [
+    "qed",
+    "sa",
+    "logp"
+  ],
+  "loss_function": "subtrajectory_balance",
+  "loss_params": {
+    "lambda_": 0.9,
+    "log_reward_clip": 10.0
+  },
+  "regularization": "entropy",
+  "regularization_params": {
+    "beta": 0.01
+  },
+  "modifications": "none",
+  "modifications_params": {},
+  "preference_distribution": "dirichlet",
+  "dirichlet_alpha": 1.5,
+  "num_preferences_per_batch": 16,
+  "sampling_strategy": "categorical",
+  "max_iterations": 10000,
+  "batch_size": 128,
+  "optimizer": "adam",
+  "learning_rate": 0.001,
+  "gradient_clip": 10.0,
+  "eval_every": 500,
+  "eval_samples": 1000,
+  "final_eval_samples": 10000,
+  "num_seeds": 5,
+  "base_seed": 42,
+  "condition_name": "small_low",
+  "hidden_dim": 64,
+  "num_layers": 2,
+  "conditioning": "concat",
+  "activation": "relu",
+  "num_parameters": "~1.3K",
+  "factor_capacity": "small",
+  "capacity_level": "small",
+  "temperature": 1.0,
+  "factor_temperature": "low",
+  "temperature_level": "low",
+  "seed": 42,
+  "exp_name": "small_low_seed42"
+}

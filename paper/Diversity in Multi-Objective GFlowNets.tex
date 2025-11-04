@@ -1,4 +1,7 @@
 \documentclass[10pts]{article}
+\usepackage{float}
+\usepackage{caption}
+\captionsetup{font=footnotesize}
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
 \makeatletter
@@ -75,21 +78,18 @@
 \begin{document}
 
 \maketitle
-\section{Baseline Establishment}
-\subsection{Project Goal}
-Systematically dissect and understand what drives diversity in multi-objective GFlowNets,
-comparing the effects of hypernetwork capacity, preference sampling strategies, and loss functions, while proposing novel GFlowNet-specific diversity metrics.
 
-Our goals is to reproduce MOGFN-PC on the hypergrid task, implements all metrics and establish baseline diversity levels.
-
-\subsection{Relevance of this project}
+\section{Introduction}
 While existing MOGFN papers measure diversity (via metrics like pairwise distance),
 there's limited understanding of what actually creates diversity, how to measure it properly and how to deliverately control diversity. Out expected contribution with this paper is a comprehensive empirical study providing actionable insights for practitioners and a suite of new diversity metrics tailored to GFlowNets.
 
-\section{Introduction}
+The purpose of this research project is to systematically dissect and understand what drives diversity in multi-objective GFlowNets,
+comparing the effects of hypernetwork capacity, preference sampling strategies, and loss functions, while proposing novel GFlowNet-specific diversity metrics.
+
+The goals is to reproduce MOGFN-PC on the hypergrid task, implements all metrics and establish baseline diversity levels.
 
 \section{Background \& Related Work}
-\subsection{GFloNets}
+\subsection{GFlowNets}
 
 \subsection{Diversity in Multi-Objective Optimization}
 Quality-diversity algorithms \citep{pugh2016quality, 7959075} balance 
@@ -98,6 +98,12 @@ to GFlowNets, introducing metrics that leverage the unique properties of
 generative flow networks \citep{bengio2021flow}...
 
 \subsection{Factors affecting Diversity}
+We first compare different model architecture of the hypernetwork. Four types of sizes of the hypernetwork capacity  (hidden dimensions $\in \{32,64,128,256\}$ and number of layers $\in \{2,3,4\}$). We also compare our algorithm on two types of conditioning; concatenation (Concat) and FiLM \citep{perez2018film} or Feature-wise Linear Modulatio for the MLP.
+
+We then test different types of sampling strategies such as different values of exploration temperature \citep{zhang2023robust, kim2023learning} that affects exploration vs exploitation, different sampling strategies such as greedy or deterministic sampling \citep{doi:10.1177/0278364917714338}, categorical sampling from action probabilities \citep{bengio2021flow}, top-k and top-p (Neucleus sampling \citep{holtzman2019curious}. We also test on a spectrum between on-policy and off-policy (off-policy ratio $\in \{0.0;0.1;0.25;0.5\}$), using different values of the hyperparameter $\alpha \in \{0;0,5;1.0;5.0 \}$ of the Dirichlet distribution for the sampling of preferences and then varying batch sizes $(\{32,64,256,512 \})$.  
+
+Finaly we test four different types of loss functions : Flow-matching \citep{bengio2021flow}, Detailed-Balance \citep{bengio2023gflownetfoundations}, Trajectory-Balance \citep{malkin2023trajectorybalanceimprovedcredit} and SubTrajectory Balance \citep{pmlr-v202-madan23a}  on three values of the hyperparameter $(\lambda\in\{0.5;0.9;0.95\})$.
+
 
 \section{Diversity Metrics for GFlowNets}
 \subsection{Limitations of Existing Metrics}
@@ -119,6 +125,14 @@ generation process. Our Trajectory Diversity Score (TDS) adapts edit distance
 \subsection{Factors \& Levels}
 
 \subsection{Tasks \& Baselines}
+HyperGrid and N-Grams task implementation from \cite{jain2023multiobjectivegflownets}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{Purpose of task factorial.png}
+    \caption{}
+    \label{fig:ressources}
+    \end{figure}
 
 \subsection{Implementation Details}
 
@@ -127,17 +141,57 @@ generation process. Our Trajectory Diversity Score (TDS) adapts edit distance
 
 \subsection{Ablation Studies}
 \subsubsection{Hypernetwork Capacity Effects}
+Best capacity : Large (128 hidden dimension and 4 layers)
+Best conditioning : concat
+Hypothesis on why concat is better than film: CONCAT maintains wider exploration because it doesn't filter preference information through gates.
+
+The large capacity (128 hidden dimensions and 4 layers) achieved the overall best diversity score. It ranked first for the mode coverage entropy metric with a score of 0.1914, first for the trajectory diversity score with a score of 0.4277 and first for the quality-diversity score with a score of 0.5158. The large capacity is the best capacity where the model has enough capacity to maintain diverse solutions without experiencing overfitting. 
+
+Comparing two conditioning for the best capacity found, we found the concatenation conditioning to have obtained the process diversity score. Concat had a TDS score of 0.422 compared to 0.386 for FiLM conditioning. 
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{conditioning_capacity_comparison.png}
+    \caption{Comparison of conditioning mechanisms (CONCAT vs FiLM) across model capacities
+for four key diversity metrics: (a) Trajectory Diversity Score (TDS),
+(b) Mode Coverage Entropy (MCE), (c) Preference-Aligned Spread (PAS), and
+(d) Quality-Diversity Score (QDS). Error bars represent ±1 standard deviation
+across 5 random seeds. CONCAT conditioning with large capacity achieves the
+highest trajectory diversity while maintaining competitive performance on other
+metrics.}
+    \label{fig:ressources}
+    \end{figure}
 
 \subsubsection{Preference Sampling Effects}
+Temperature : 2.0
 
 \subsubsection{Loss Function Effects}
-
-\subsection{Interaction Analysis}
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.3]{entropy_comparison.png}
+    \caption{Entropy Comparaison ...}
+    \label{fig:ressources}
+    \end{figure}
+\subsection{Interaction Analysis (Factorial Studies)}
 
 \subsection{Metric Analysis}
 
 \section{Analysis \& Discussion}
 \subsection{What Drives Diversity?}
+Findings of mode collapse for factorial configurations with low temperature:
+  - Low temperature (τ=1.0) caused 100\% mode collapse across all capacities
+  - This demonstrates that adequate exploration temperature is essential for MOGFN diversity
+  - Minimum safe temperature: $\tau=2.0$
+
+  ---
+Scientific Contribution
+
+  This collapse analysis reveals:
+
+  1. Temperature is more critical than capacity for MOGFN diversity
+  2. Strong main effect, no interaction rescue: Large capacity cannot compensate for low temperature
+  3. Practical guideline: Always use τ≥2.0 for MOGFNs
+  4. Environment-specific: HyperGrid shows this clearly; test if N-grams similar
 
 \subsection{Practical Guidelines}
 
@@ -151,3 +205,4 @@ generation process. Our Trajectory Diversity Score (TDS) adapts edit distance
 \bibliography{references}
 
 \end{document}
+

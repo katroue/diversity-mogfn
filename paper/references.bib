@@ -1,3 +1,4 @@
+% Multi-Objective GFlowNets paper
 @misc{jain2023multiobjectivegflownets,
       title={Multi-Objective GFlowNets}, 
       author={Moksh Jain and Sharath Chandra Raparthy and Alex Hernandez-Garcia and Jarrid Rector-Brooks and Yoshua Bengio and Santiago Miret and Emmanuel Bengio},
@@ -221,4 +222,80 @@
   number={2},
   pages={182--197},
   year={2002}
+}
+
+% Hypervolume metric
+@article{10.1145/3453474,
+author = {Guerreiro, Andreia P. and Fonseca, Carlos M. and Paquete, Lu\'{\i}s},
+title = {The Hypervolume Indicator: Computational Problems and Algorithms},
+year = {2021},
+issue_date = {July 2022},
+publisher = {Association for Computing Machinery},
+address = {New York, NY, USA},
+volume = {54},
+number = {6},
+issn = {0360-0300},
+url = {https://doi.org/10.1145/3453474},
+doi = {10.1145/3453474},
+abstract = {The hypervolume indicator is one of the most used set-quality indicators for the assessment of stochastic multiobjective optimizers, as well as for selection in evolutionary multiobjective optimization algorithms. Its theoretical properties justify its wide acceptance, particularly the strict monotonicity with respect to set dominance, which is still unique of hypervolume-based indicators. This article discusses the computation of hypervolume-related problems, highlighting the relations between them, providing an overview of the paradigms and techniques used, a description of the main algorithms for each problem, and a rundown of the fastest algorithms regarding asymptotic complexity and runtime. By providing a complete overview of the computational problems associated to the hypervolume indicator, this article serves as the starting point for the development of new algorithms and supports users in the identification of the most appropriate implementations available for each problem.},
+journal = {ACM Comput. Surv.},
+month = jul,
+articleno = {119},
+numpages = {42},
+keywords = {multiobjective optimization, hypervolume subset selection problem, hypervolume contributions, Hypervolume indicator}
+}
+
+% FiLM Conditioning
+@inproceedings{perez2018film,
+  title={Film: Visual reasoning with a general conditioning layer},
+  author={Perez, Ethan and Strub, Florian and De Vries, Harm and Dumoulin, Vincent and Courville, Aaron},
+  booktitle={Proceedings of the AAAI conference on artificial intelligence},
+  volume={32},
+  number={1},
+  year={2018}
+}
+
+% Temperature (Sampling strategy)
+@article{zhang2023robust,
+  title={Robust scheduling with gflownets},
+  author={Zhang, David W and Rainone, Corrado and Peschl, Markus and Bondesan, Roberto},
+  journal={arXiv preprint arXiv:2302.05446},
+  year={2023}
+}
+
+@article{kim2023learning,
+  title={Learning to scale logits for temperature-conditional gflownets},
+  author={Kim, Minsu and Ko, Joohwan and Yun, Taeyoung and Zhang, Dinghuai and Pan, Ling and Kim, Woochang and Park, Jinkyoo and Bengio, Emmanuel and Bengio, Yoshua},
+  journal={arXiv preprint arXiv:2310.02823},
+  year={2023}
+}
+
+% Sampling Strategy : Greedy (Deterministic)
+@article{doi:10.1177/0278364917714338,
+author = {Lucas Janson and Brian Ichter and Marco Pavone},
+title ={Deterministic sampling-based motion planning: Optimality, complexity, and performance},
+journal = {The International Journal of Robotics Research},
+volume = {37},
+number = {1},
+pages = {46-61},
+year = {2018},
+doi = {10.1177/0278364917714338},
+URL = {https://doi.org/10.1177/0278364917714338},
+eprint = {https://doi.org/10.1177/0278364917714338}
+}
+
+% Sampling Strategy : Categorical
+@inproceedings{bengio2021flow,
+  title={Flow Network based Generative Models for Non-Iterative Diverse Candidate Generation},
+  author={Bengio, Emmanuel and Jain, Moksh and Korablyov, Maksym and Precup, Doina and Bengio, Yoshua},
+  booktitle={Advances in Neural Information Processing Systems},
+  year={2021}
+}
+
+% Sampling stategy : Top-K and Top-P (Neucleus)
+@article{holtzman2019curious,
+  title={The curious case of neural text degeneration},
+  author={Holtzman, Ari and Buys, Jan and Du, Li and Forbes, Maxwell and Choi, Yejin},
+  journal={arXiv preprint arXiv:1904.09751},
+  year={2019}
 }

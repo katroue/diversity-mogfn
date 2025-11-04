@@ -19,6 +19,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from models.mogfn_pc import MultiObjectiveEnvironment
 
+# Suppress RDKit warnings about invalid molecules
+import warnings
+warnings.filterwarnings('ignore', category=DeprecationWarning)
+try:
+    from rdkit import RDLogger
+    # Disable RDKit warnings/errors about invalid molecules
+    RDLogger.DisableLog('rdApp.*')
+except ImportError:
+    pass
+
 
 class MoleculeFragments(MultiObjectiveEnvironment):
     """
@@ -58,19 +68,19 @@ class MoleculeFragments(MultiObjectiveEnvironment):
     }
 
     def __init__(self,
-                 max_fragments: int = 8,
-                 num_fragments_library: int = 15,
-                 objective_properties: Optional[List[str]] = None,
-                 use_rdkit: bool = True):
+                max_fragments: int = 8,
+                num_fragments_library: int = 15,
+                objective_properties: Optional[List[str]] = None,
+                use_rdkit: bool = True):
         """
         Args:
             max_fragments: Maximum number of fragments in a molecule
             num_fragments_library: Number of fragments in the library to use
             objective_properties: List of properties to use as objectives
-                                 Options: 'qed', 'sa', 'logp', 'mw'
-                                 If None, uses ['qed', 'sa']
+                                Options: 'qed', 'sa', 'logp', 'mw'
+                                If None, uses ['qed', 'sa']
             use_rdkit: Whether to use RDKit for property calculation
-                      If False, uses simple heuristics (for testing without RDKit)
+                    If False, uses simple heuristics (for testing without RDKit)
         """
         self.max_fragments = max_fragments
         self.num_fragments_library = min(num_fragments_library, len(self.FRAGMENT_LIBRARY))
@@ -187,6 +197,27 @@ class MoleculeFragments(MultiObjectiveEnvironment):
 
         # Simple concatenation (in practice, would need proper chemical bonding)
         smiles = ''.join(fragments)
+
+        # If RDKit is available, validate and sanitize the molecule
+        if self._rdkit_available and smiles:
+            try:
+                from rdkit import Chem
+                mol = Chem.MolFromSmiles(smiles, sanitize=False)
+                if mol is not None:
+                    # Try to sanitize the molecule
+                    # This will fix issues like invalid valences where possible
+                    try:
+                        Chem.SanitizeMol(mol)
+                        # Return canonicalized SMILES
+                        smiles = Chem.MolToSmiles(mol)
+                    except:
+                        # Sanitization failed - molecule is chemically invalid
+                        # Return empty string to indicate invalid molecule
+                        return ""
+            except:
+                # Parsing failed completely
+                return ""
+
         return smiles
 
     def _compute_qed(self, smiles: str) -> float:
@@ -404,9 +435,9 @@ class MoleculeFragments(MultiObjectiveEnvironment):
             print(f"SMILES: {smiles}")
 
     def visualize_samples(self,
-                         objectives: torch.Tensor,
-                         states: Optional[List[torch.Tensor]] = None,
-                         save_path: Optional[str] = None):
+                        objectives: torch.Tensor,
+                        states: Optional[List[torch.Tensor]] = None,
+                        save_path: Optional[str] = None):
         """
         Visualize sampled molecules in objective space.
 
@@ -423,7 +454,7 @@ class MoleculeFragments(MultiObjectiveEnvironment):
             # 2D scatter plot
             plt.figure(figsize=(8, 6))
             plt.scatter(objectives_np[:, 0], objectives_np[:, 1],
-                       alpha=0.6, s=50, c='blue')
+                    alpha=0.6, s=50, c='blue')
 
             # Annotate some points with SMILES
             if states and len(states) <= 10:
@@ -431,9 +462,9 @@ class MoleculeFragments(MultiObjectiveEnvironment):
                     smiles = self._state_to_smiles(states[i])
                     if smiles:
                         plt.annotate(smiles[:15],
-                                   (objectives_np[i, 0], objectives_np[i, 1]),
-                                   fontsize=7, alpha=0.7,
-                                   xytext=(5, 5), textcoords='offset points')
+                                (objectives_np[i, 0], objectives_np[i, 1]),
+                                fontsize=7, alpha=0.7,
+                                xytext=(5, 5), textcoords='offset points')
 
             plt.xlabel(f'Objective 1: {self.objective_properties[0].upper()}')
             plt.ylabel(f'Objective 2: {self.objective_properties[1].upper()}')
@@ -446,7 +477,7 @@ class MoleculeFragments(MultiObjectiveEnvironment):
             fig = plt.figure(figsize=(10, 8))
             ax = fig.add_subplot(111, projection='3d')
             ax.scatter(objectives_np[:, 0], objectives_np[:, 1], objectives_np[:, 2],
-                      alpha=0.6, s=50, c='blue')
+                    alpha=0.6, s=50, c='blue')
             ax.set_xlabel(self.objective_properties[0].upper())
             ax.set_ylabel(self.objective_properties[1].upper())
             ax.set_zlabel(self.objective_properties[2].upper())

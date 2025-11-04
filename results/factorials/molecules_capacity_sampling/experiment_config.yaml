@@ -1,0 +1,208 @@
+conditions: &id001
+- capacity: small
+  name: small_low
+  temperature: low
+- capacity: small
+  name: small_high
+  temperature: high
+- capacity: small
+  name: small_veryhigh
+  temperature: very_high
+- capacity: medium
+  name: medium_low
+  temperature: low
+- capacity: medium
+  name: medium_high
+  temperature: high
+- capacity: medium
+  name: medium_veryhigh
+  temperature: very_high
+- capacity: large
+  name: large_low
+  temperature: low
+- capacity: large
+  name: large_high
+  temperature: high
+- capacity: large
+  name: large_veryhigh
+  temperature: very_high
+config:
+  analysis:
+    research_questions:
+      rq1:
+        factor: capacity
+        metric: mode_coverage_entropy
+        question: Does capacity have a main effect on diversity?
+        test: one_way_anova
+      rq2:
+        factor: temperature
+        metric: mode_coverage_entropy
+        question: Does temperature have a main effect on diversity?
+        test: one_way_anova
+      rq3:
+        factors:
+        - capacity
+        - temperature
+        interaction_term: capacity:temperature
+        metric: mode_coverage_entropy
+        question: Is there an interaction between capacity and temperature?
+        test: two_way_anova
+    statistical_tests:
+    - alpha: 0.05
+      formula: mce ~ C(capacity) + C(temperature) + C(capacity):C(temperature)
+      name: factorial_anova
+      test: two_way_anova
+    - factor: capacity
+      metric: mce
+      name: capacity_posthoc
+      test: tukey_hsd
+    - factor: temperature
+      metric: mce
+      name: temperature_posthoc
+      test: tukey_hsd
+  conditions: *id001
+  expected_results:
+    best_case:
+      condition: large_high
+      expected_mce: '>0.4'
+      expected_qds: '>0.6'
+    scenario_interaction:
+      description: Factors depend on each other (multiplicative effects)
+      examples:
+      - Small models work best with Low temp
+      - Large models need High temp to explore discrete space
+      implication: Optimal settings depend on context
+      interaction_plot: Non-parallel or crossing lines
+    scenario_no_interaction:
+      description: Factors are independent (additive effects)
+      implication: 'Optimal settings independent: use Medium + High'
+      interaction_plot: Parallel lines
+    worst_case:
+      condition: small_veryhigh
+      expected_mce: <0.15
+      expected_qds: <0.35
+      rationale: Small capacity can't handle high exploration in discrete space
+  experiment_name: molecules_capacity_sampling_2way
+  factors:
+    capacity:
+      description: "Model size (hidden dim \xD7 num layers)"
+      levels:
+        large:
+          activation: relu
+          conditioning: concat
+          hidden_dim: 256
+          label: "Large (256\xD76)"
+          num_layers: 6
+          num_parameters: ~530K
+        medium:
+          activation: relu
+          conditioning: concat
+          hidden_dim: 128
+          label: "Medium (128\xD74)"
+          num_layers: 4
+          num_parameters: ~70K
+        small:
+          activation: relu
+          conditioning: concat
+          hidden_dim: 64
+          label: "Small (64\xD72)"
+          num_layers: 2
+          num_parameters: ~1.3K
+    temperature:
+      description: Exploration temperature for action sampling
+      levels:
+        high:
+          description: Increased exploration
+          label: "High (\u03C4=2.0)"
+          temperature: 2.0
+        low:
+          description: Balanced exploration-exploitation
+          label: "Low (\u03C4=1.0)"
+          temperature: 1.0
+        very_high:
+          description: Maximum exploration
+          label: "Very High (\u03C4=5.0)"
+          temperature: 5.0
+  fixed:
+    base_seed: 42
+    batch_size: 128
+    dirichlet_alpha: 1.5
+    environment: molecules
+    eval_every: 500
+    eval_samples: 1000
+    final_eval_samples: 10000
+    gradient_clip: 10.0
+    learning_rate: 0.001
+    loss_function: subtrajectory_balance
+    loss_params:
+      lambda_: 0.9
+      log_reward_clip: 10.0
+    max_fragments: 8
+    max_iterations: 10000
+    modifications: none
+    modifications_params: {}
+    num_fragments_library: 15
+    num_preferences_per_batch: 16
+    num_seeds: 5
+    objective_properties:
+    - qed
+    - sa
+    - logp
+    optimizer: adam
+    preference_distribution: dirichlet
+    regularization: entropy
+    regularization_params:
+      beta: 0.01
+    sampling_strategy: categorical
+    use_rdkit: true
+  hypotheses:
+    h1_main_capacity:
+      prediction: "Medium > Small, Large \u2248 Medium (diminishing returns)"
+      rationale: More capacity enables learning diverse sequence generation policies
+      statement: Model capacity has a significant main effect on diversity
+    h2_main_temperature:
+      prediction: "High (\u03C4=2.0) > Low (\u03C4=1.0), Very High (\u03C4=5.0) \u2248\
+        \ High"
+      rationale: Higher temperature increases exploration in discrete action space
+      statement: Temperature has a significant main effect on diversity
+    h3_interaction:
+      expected_pattern: Non-parallel lines in interaction plot
+      prediction: 'Small models: Low > High (limited capacity), Large models: High
+        > Low'
+      rationale: Small models can't leverage high exploration; large models need it
+        to explore discrete space
+      statement: There is an interaction between capacity and temperature
+    h4_discrete_hypothesis:
+      prediction: Interaction effect larger for N-grams due to discrete action space
+      rationale: Discrete actions require more exploration, magnifying capacity-temperature
+        interaction
+      statement: N-grams shows stronger interaction than continuous HyperGrid
+  metrics:
+    primary:
+    - mode_coverage_entropy
+    - preference_aligned_spread
+    - trajectory_diversity_score
+    - flow_concentration_index
+    - quality_diversity_score
+    secondary:
+    - hypervolume
+    - diversity_efficiency_ratio
+    - replay_buffer_diversity
+  resources:
+    estimated_time_per_run: 30 minutes
+    recommended_parallelization:
+      max_parallel: 10
+      strategy: condition_parallel
+    storage_per_run: ~30 MB
+    total_runs: 45
+    total_storage: ~1.4 GB
+    total_time_parallel: 2.3 hours
+    total_time_sequential: 23 hours
+  study_type: factorial
+seeds:
+- 42
+- 153
+- 264
+- 375
+- 486
+timestamp: '2025-11-04T12:12:07.721317'
