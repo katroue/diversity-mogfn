@@ -254,7 +254,7 @@ experiments:
     vary:
       modifications:
         - "standard"
-        - "temperature_scaled_logits"
+        - "temperature_scaled_logits" # best found from results
         - "reward_shaping_diversity"
     # 3 experiments × 5 seeds = 15 runs
 

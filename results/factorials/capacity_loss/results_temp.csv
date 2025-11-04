@@ -1,0 +1,2 @@
+hypervolume,r2_indicator,avg_pairwise_distance,spacing,spread,tds,mpd,mce,num_modes,pmd,pfs,pas,rbd,fci,qds,der,num_parameters,training_time,final_loss,seed,exp_name,condition_name,capacity_level,loss_level
+0.1099999814460865,-0.04536363568894863,0.0,0.0,1.0,0.36338303671637007,4.61512051684126,0.0,1,0.0,0.0,0.0,0.36338303671635075,0.4814988290398128,0.04545453778763904,0.0,9351,7485.452217,0.0511527955532074,42,medium_tb_seed42,medium_tb,medium,tb

@@ -8,7 +8,7 @@ inform decisions about later groups.
 
 Usage:
     # Run a specific group
-    python scripts/ablations/run_loss_ablation_group.py --group kl_regularization
+    python scripts/ablations/run_loss_ablation_group.py --group loss_modifications
 
     # Run all groups sequentially
     python scripts/ablations/run_loss_ablation_group.py --all

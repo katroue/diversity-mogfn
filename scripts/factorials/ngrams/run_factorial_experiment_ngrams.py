@@ -13,8 +13,8 @@ Supports all three factorial configurations:
 Usage:
     # Run capacity � loss factorial
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_capacity_loss_2way.yaml \
-        --output_dir results/factorials/ngrams_capacity_loss
+        --config configs/factorials/ngrams_sampling_loss_2way.yaml \
+        --output_dir results/factorials/ngrams_sampling_loss
 
     # Dry run to preview
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
@@ -559,6 +559,18 @@ def run_factorial_experiment(config_path: Path,
 
             # Save incremental results
             df_temp = pd.DataFrame(results)
+
+            # Merge with existing temp results if they exist
+            if results_temp_file.exists():
+                try:
+                    df_existing = pd.read_csv(results_temp_file)
+                    df_temp = pd.concat([df_existing, df_temp], ignore_index=True)
+                    # Remove duplicates (keep last occurrence in case of re-runs)
+                    df_temp = df_temp.drop_duplicates(subset=['exp_name'], keep='last')
+                except Exception as e:
+                    # If reading fails, just save the new results
+                    tqdm.write(f"   ⚠ Warning: Could not merge with existing temp results: {e}")
+
             df_temp.to_csv(results_temp_file, index=False)
 
             tqdm.write(f"   Completed {exp_name}")

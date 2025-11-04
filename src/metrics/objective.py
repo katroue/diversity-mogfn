@@ -106,21 +106,40 @@ def pareto_front_smoothness(objectives: np.ndarray, method: str = 'curve_fitting
         # Sort by first objective
         sorted_indices = np.argsort(pareto_points[:, 0])
         sorted_points = pareto_points[sorted_indices]
-        
-        # Fit polynomial curve (degree 2 or 3)
-        degree = min(3, len(sorted_points) - 1)
-        coeffs = np.polyfit(sorted_points[:, 0], sorted_points[:, 1], degree)
-        poly = np.poly1d(coeffs)
-        
-        # Compute fitted values
-        fitted_y = poly(sorted_points[:, 0])
-        
-        # Smoothness = sum of squared deviations from fitted curve
-        deviations = sorted_points[:, 1] - fitted_y
-        pfs = np.sum(deviations ** 2)
-        
-        # Normalize by number of points and variance
-        pfs = pfs / (len(sorted_points) * (np.var(sorted_points[:, 1]) + 1e-10))
+
+        # Check for degenerate cases that would cause SVD to fail
+        x_range = np.max(sorted_points[:, 0]) - np.min(sorted_points[:, 0])
+        y_range = np.max(sorted_points[:, 1]) - np.min(sorted_points[:, 1])
+
+        # If all points have same x or y coordinate, return 0 (perfectly smooth/degenerate)
+        if x_range < 1e-10 or y_range < 1e-10:
+            return 0.0
+
+        # Check for duplicate x-values that would cause singular matrix
+        unique_x = np.unique(sorted_points[:, 0])
+        if len(unique_x) < 3:
+            return 0.0  # Not enough unique x-values for meaningful curve fit
+
+        try:
+            # Fit polynomial curve (degree 2 or 3)
+            degree = min(3, len(sorted_points) - 1)
+            coeffs = np.polyfit(sorted_points[:, 0], sorted_points[:, 1], degree)
+            poly = np.poly1d(coeffs)
+
+            # Compute fitted values
+            fitted_y = poly(sorted_points[:, 0])
+
+            # Smoothness = sum of squared deviations from fitted curve
+            deviations = sorted_points[:, 1] - fitted_y
+            pfs = np.sum(deviations ** 2)
+
+            # Normalize by number of points and variance
+            pfs = pfs / (len(sorted_points) * (np.var(sorted_points[:, 1]) + 1e-10))
+
+        except (np.linalg.LinAlgError, ValueError) as e:
+            # Polyfit failed (SVD didn't converge, singular matrix, etc.)
+            # Return 0.0 as fallback (treat as degenerate case)
+            return 0.0
         
     elif method == 'local_variance':
         # Sort by first objective
