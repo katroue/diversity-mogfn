@@ -26,8 +26,8 @@ fixed:
   # Task: DNA sequences generation
   environment: 'sequences'
   seq_length: 20
-  temperaturee: 37.0  # Celsius for NUPACK stability calculations
-  use_nupack: True
+  temperature_seq: 37.0  # Celsius for NUPACK stability calculations
+  use_viennarna: True
   objective_properties:
     - "free_energy"
     - "num_baise_pairs"
@@ -108,17 +108,17 @@ factors:
 
       low:
         label: "Low (τ=1.0)"
-        temperature: 1.0
+        temperature_sampling: 1.0
         description: "Balanced exploration-exploitation"
 
       high:
         label: "High (τ=2.0)"
-        temperature: 2.0
+        temperature_sampling: 2.0
         description: "Increased exploration"
 
       very_high:
         label: "Very High (τ=5.0)"
-        temperature: 5.0
+        temperature_sampling: 5.0
         description: "Maximum exploration"
 
 # ============================================================================

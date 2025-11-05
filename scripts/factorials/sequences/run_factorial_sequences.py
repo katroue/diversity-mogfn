@@ -13,8 +13,8 @@ Supports all three factorial configurations:
 Usage:
     # Run capacity x sampling factorial
     python scripts/factorials/sequences/run_factorial_sequences.py \
-        --config configs/factorials/sequences_capacity_loss_2way.yaml \
-        --output_dir results/factorials/sequences_capacity_loss
+        --config configs/factorials/sequences_sampling_loss_2way.yaml \
+        --output_dir results/factorials/sequences_sampling_loss
 
     # Dry run to preview
     python scripts/factorials/sequences/run_factorial_sequences.py \
@@ -162,7 +162,7 @@ def run_single_experiment(exp_config: dict,
     by using .get() with sensible defaults for parameters that may not be present in all configs.
 
     Default values:
-        - temperature: 1.0
+        - temperature: 2.0
         - sampling_strategy: 'categorical'
         - conditioning: 'concat'
         - preference_distribution: 'dirichlet'
@@ -230,14 +230,14 @@ def run_single_experiment(exp_config: dict,
     env = DNASequence(
         seq_length=exp_config.get('seq_length', 20),
         objectives=exp_config.get('objectives', ['free_energy', 'num_base_pairs', 'inverse_length']),
-        temperature=exp_config.get('temperature', 37.0),
+        temperature_seq=exp_config.get('temperature_seq', 37.0),
         use_viennarna=exp_config.get('use_viennarna', True)
     )
 
     print(f"\n  Environment: Sequences")
     print(f"    Seq length: {env.seq_length}")
     print(f"    Objective properties: {env.objectives}")
-    print(f"    Temperature: {env.temperature} °C")
+    print(f"    Temperature: {env.temperature_seq} °C")
     print(f"    Use ViennaRNA: {env.use_viennarna}")
 
     # Create MOGFN model
@@ -250,7 +250,7 @@ def run_single_experiment(exp_config: dict,
         num_layers=exp_config['num_layers'],
         preference_encoding='vanilla',
         conditioning_type=exp_config.get('conditioning', 'concat'),
-        temperature=exp_config.get('temperature', 2.0),  # Default to 2.0 if not specified
+        temperature=exp_config.get('temperature_sampling', 2.0),  # Default to 2.0 if not specified
         sampling_strategy=exp_config.get('sampling_strategy', 'categorical')  # Default to categorical
     ).to(device)
 

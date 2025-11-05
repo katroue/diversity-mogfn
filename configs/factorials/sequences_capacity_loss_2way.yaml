@@ -26,7 +26,7 @@ fixed:
   # Task: DNA sequences generation
   environment: 'sequences'
   seq_length: 20
-  temperature: 37.0  # Celsius for ViennaRNA stability calculations
+  temperature_seq: 37.0  # Celsius for ViennaRNA stability calculations
   use_viennarna: True
   objective_properties:
     - "free_energy"
@@ -34,7 +34,7 @@ fixed:
     - "inverse_length"
 
   # Sampling (FIXED)
-  temperature: 2.0             # Best from sampling ablation
+  temperature_sampling: 2.0             # Best from sampling ablation
   sampling_strategy: "categorical"
   preference_distribution: "dirichlet"
   dirichlet_alpha: 1.5

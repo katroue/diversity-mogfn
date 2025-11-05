@@ -52,7 +52,7 @@ class DNASequence(MultiObjectiveEnvironment):
     def __init__(self,
                 seq_length: int = 20,
                 objectives: Optional[List[str]] = None,
-                temperature: float = 37.0,
+                temperature_seq: float = 37.0,
                 use_viennarna: bool = True):
         """
         Initialize DNA sequence environment (paper specification).
@@ -67,7 +67,7 @@ class DNASequence(MultiObjectiveEnvironment):
                         If False or ViennaRNA unavailable, use simple heuristics
         """
         self.seq_length = seq_length
-        self.temperature = temperature
+        self.temperature_seq = temperature_seq
         self.use_viennarna = use_viennarna
 
         # Try to import ViennaRNA
@@ -505,7 +505,7 @@ if __name__ == '__main__':
     env = DNASequence(
         seq_length=15,
         objectives=['free_energy', 'num_base_pairs', 'inverse_length'],
-        temperature=37.0,
+        temperature_seq=37.0,
         use_viennarna=True
     )
 

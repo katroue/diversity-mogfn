@@ -26,7 +26,7 @@ fixed:
   # Task: DNA sequences generation
   environment: 'sequences'
   seq_length: 20
-  temperature: 37.0  # Celsius for ViennaRNA stability calculations
+  temperature_seq: 37.0  # Celsius for ViennaRNA stability calculations
   use_viennarna: True
   objective_properties:
     - "free_energy"
@@ -68,23 +68,23 @@ fixed:
 factors:
 
   # Factor A: Sampling Temperature
-  temperature:
+  temperature_sampling:
     description: "Exploration temperature for character selection"
     levels:
 
       low:
         label: "Low (τ=1.0)"
-        temperature: 1.0
+        temperature_sampling: 1.0
         description: "Standard softmax sampling"
 
       high:
         label: "High (τ=2.0)"
-        temperature: 2.0
+        temperature_sampling: 2.0
         description: "Increased exploration"
 
       very_high:
         label: "Very High (τ=5.0)"
-        temperature: 5.0
+        temperature_sampling: 5.0
         description: "Maximum exploration (nearly uniform)"
 
   # Factor B: Loss Function
@@ -134,41 +134,41 @@ conditions:
 
   # Low temperature × All losses
   - name: "low_tb"
-    temperature: "low"
+    temperature_sampling: "low"
     loss: "tb"
 
   - name: "low_subtb"
-    temperature: "low"
+    temperature_sampling: "low"
     loss: "subtb"
 
   - name: "low_subtb_entropy"
-    temperature: "low"
+    temperature_sampling: "low"
     loss: "subtb_entropy"
 
   # High temperature × All losses
   - name: "high_tb"
-    temperature: "high"
+    temperature_sampling: "high"
     loss: "tb"
 
   - name: "high_subtb"
-    temperature: "high"
+    temperature_sampling: "high"
     loss: "subtb"
 
   - name: "high_subtb_entropy"
-    temperature: "high"
+    temperature_sampling: "high"
     loss: "subtb_entropy"
 
   # Very high temperature × All losses
   - name: "veryhigh_tb"
-    temperature: "very_high"
+    temperature_sampling: "very_high"
     loss: "tb"
 
   - name: "veryhigh_subtb"
-    temperature: "very_high"
+    temperature_sampling: "very_high"
     loss: "subtb"
 
   - name: "veryhigh_subtb_entropy"
-    temperature: "very_high"
+    temperature_sampling: "very_high"
     loss: "subtb_entropy"
 
 # ============================================================================
