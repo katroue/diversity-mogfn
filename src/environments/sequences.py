@@ -50,10 +50,10 @@ class DNASequence(MultiObjectiveEnvironment):
     BASE_TO_IDX = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
 
     def __init__(self,
-                 seq_length: int = 20,
-                 objectives: Optional[List[str]] = None,
-                 temperature: float = 37.0,
-                 use_viennarna: bool = True):
+                seq_length: int = 20,
+                objectives: Optional[List[str]] = None,
+                temperature: float = 37.0,
+                use_viennarna: bool = True):
         """
         Initialize DNA sequence environment (paper specification).
 
@@ -64,7 +64,7 @@ class DNASequence(MultiObjectiveEnvironment):
                 Default: all three objectives
             temperature: Temperature in Celsius for ViennaRNA calculations (default 37°C)
             use_viennarna: If True, try to use ViennaRNA for free energy calculation
-                          If False or ViennaRNA unavailable, use simple heuristics
+                        If False or ViennaRNA unavailable, use simple heuristics
         """
         self.seq_length = seq_length
         self.temperature = temperature

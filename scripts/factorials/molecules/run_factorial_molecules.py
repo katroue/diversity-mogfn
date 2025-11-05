@@ -13,8 +13,8 @@ Supports all three factorial configurations:
 Usage:
     # Run capacity x loss factorial
     python scripts/factorials/molecules/run_factorial_molecules.py \
-        --config configs/factorials/molecules_sampling_loss_2way.yaml \
-        --output_dir results/factorials/molecules_sampling_loss
+        --config configs/factorials/molecules_capacity_loss_2way.yaml \
+        --output_dir results/factorials/molecules_capacity_loss
 
     # Dry run to preview
     python scripts/factorials/molecules/run_factorial_molecules.py \

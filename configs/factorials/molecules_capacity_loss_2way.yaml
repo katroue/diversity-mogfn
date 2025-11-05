@@ -260,7 +260,7 @@ hypotheses:
 
 resources:
   total_runs: 45
-  estimated_time_per_run: "30 minutes"  # 8000 iterations (2x base time)
+  estimated_time_per_run: "30 minutes"  # 10000 iterations
   total_time_sequential: "23 hours"
   total_time_parallel: "2.3 hours"  # With 10 parallel jobs
 
