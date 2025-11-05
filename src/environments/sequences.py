@@ -32,7 +32,7 @@ class DNASequence(MultiObjectiveEnvironment):
         - 4: DONE (terminate sequence)
 
     Objectives (as specified in Jain et al., ICML 2023):
-        - free_energy: Free energy of secondary structure (from NUPACK), lower is better (we maximize -energy)
+        - free_energy: Free energy of secondary structure (from ViennaRNA), lower is better (we maximize -energy)
         - num_base_pairs: Number of base pairs in secondary structure
         - inverse_length: 1/length (favors shorter sequences)
 
@@ -53,7 +53,7 @@ class DNASequence(MultiObjectiveEnvironment):
                  seq_length: int = 20,
                  objectives: Optional[List[str]] = None,
                  temperature: float = 37.0,
-                 use_nupack: bool = True):
+                 use_viennarna: bool = True):
         """
         Initialize DNA sequence environment (paper specification).
 
@@ -62,25 +62,25 @@ class DNASequence(MultiObjectiveEnvironment):
             objectives: List of objective names to optimize
                 Options: 'free_energy', 'num_base_pairs', 'inverse_length'
                 Default: all three objectives
-            temperature: Temperature in Celsius for NUPACK calculations (default 37°C)
-            use_nupack: If True, try to use NUPACK for free energy calculation
-                       If False or NUPACK unavailable, use simple heuristics
+            temperature: Temperature in Celsius for ViennaRNA calculations (default 37°C)
+            use_viennarna: If True, try to use ViennaRNA for free energy calculation
+                          If False or ViennaRNA unavailable, use simple heuristics
         """
         self.seq_length = seq_length
         self.temperature = temperature
-        self.use_nupack = use_nupack
+        self.use_viennarna = use_viennarna
 
-        # Try to import NUPACK
-        self._nupack_available = False
-        if use_nupack:
+        # Try to import ViennaRNA
+        self._viennarna_available = False
+        if use_viennarna:
             try:
-                import nupack
-                self._nupack_available = True
-                self._nupack = nupack
-                print(f"✓ NUPACK is available for free energy calculations")
+                import RNA
+                self._viennarna_available = True
+                self._RNA = RNA
+                print(f"✓ ViennaRNA is available for free energy calculations")
             except ImportError:
-                print(f"⚠ NUPACK not available, using heuristic approximations")
-                print(f"  Install with: pip install nupack")
+                print(f"⚠ ViennaRNA not available, using heuristic approximations")
+                print(f"  Install with: pip install ViennaRNA")
 
         # Set objectives (paper specification: free energy, num base pairs, inverse length)
         if objectives is None:
@@ -230,7 +230,7 @@ class DNASequence(MultiObjectiveEnvironment):
 
     def _compute_free_energy(self, sequence: str) -> float:
         """
-        Compute free energy of secondary structure using NUPACK.
+        Compute free energy of secondary structure using ViennaRNA.
 
         Lower free energy = more stable structure = better.
         We return -free_energy so that maximization works.
@@ -245,22 +245,14 @@ class DNASequence(MultiObjectiveEnvironment):
         if len(sequence) == 0:
             return 0.0
 
-        if self._nupack_available:
+        if self._viennarna_available:
             try:
-                # Create NUPACK strand
-                strand = self._nupack.Strand(sequence, name='seq')
+                # Fold sequence and compute MFE (minimum free energy)
+                # Returns: (structure, mfe) where structure is dot-bracket notation
+                structure, mfe = self._RNA.fold(sequence)
 
-                # Create complex
-                complex_ = self._nupack.Complex([strand], name='complex')
-
-                # Set model (DNA, temperature in Kelvin)
-                model = self._nupack.Model(material='dna', celsius=self.temperature)
-
-                # Compute MFE (minimum free energy) structure
-                result = self._nupack.mfe([complex_], model=model)
-
-                # Get free energy (in kcal/mol)
-                free_energy = float(result[0].energy)
+                # MFE is in kcal/mol (negative = stable)
+                free_energy = float(mfe)
 
                 # Return negative energy (so more negative/stable = higher reward)
                 # Normalize: typical range is -30 to 0 kcal/mol
@@ -270,8 +262,8 @@ class DNASequence(MultiObjectiveEnvironment):
                 return float(normalized_score)
 
             except Exception as e:
-                # Fall back to heuristic if NUPACK fails
-                print(f"Warning: NUPACK calculation failed: {e}")
+                # Fall back to heuristic if ViennaRNA fails
+                print(f"Warning: ViennaRNA calculation failed: {e}")
                 return self._compute_free_energy_heuristic(sequence)
         else:
             # Use heuristic approximation
@@ -279,7 +271,7 @@ class DNASequence(MultiObjectiveEnvironment):
 
     def _compute_free_energy_heuristic(self, sequence: str) -> float:
         """
-        Heuristic approximation of free energy (when NUPACK unavailable).
+        Heuristic approximation of free energy (when ViennaRNA unavailable).
 
         Based on GC content and potential base pairing.
         GC pairs are more stable than AT pairs.
@@ -320,22 +312,10 @@ class DNASequence(MultiObjectiveEnvironment):
         if len(sequence) == 0:
             return 0.0
 
-        if self._nupack_available:
+        if self._viennarna_available:
             try:
-                # Create NUPACK strand
-                strand = self._nupack.Strand(sequence, name='seq')
-
-                # Create complex
-                complex_ = self._nupack.Complex([strand], name='complex')
-
-                # Set model
-                model = self._nupack.Model(material='dna', celsius=self.temperature)
-
-                # Compute MFE structure
-                result = self._nupack.mfe([complex_], model=model)
-
-                # Get structure (dot-bracket notation)
-                structure = str(result[0].structure)
+                # Fold sequence and get structure (dot-bracket notation)
+                structure, mfe = self._RNA.fold(sequence)
 
                 # Count base pairs (opening and closing brackets)
                 num_pairs = structure.count('(')  # Each '(' has a matching ')'
@@ -350,7 +330,7 @@ class DNASequence(MultiObjectiveEnvironment):
                 return float(normalized_score)
 
             except Exception as e:
-                print(f"Warning: NUPACK calculation failed: {e}")
+                print(f"Warning: ViennaRNA calculation failed: {e}")
                 return self._compute_num_base_pairs_heuristic(sequence)
         else:
             # Use heuristic approximation
@@ -526,7 +506,7 @@ if __name__ == '__main__':
         seq_length=15,
         objectives=['free_energy', 'num_base_pairs', 'inverse_length'],
         temperature=37.0,
-        use_nupack=True
+        use_viennarna=True
     )
 
     print(f"\nEnvironment properties:")
