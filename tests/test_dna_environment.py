@@ -95,7 +95,7 @@ def test_objective_computation():
     env = DNASequence(
         seq_length=20,
         objectives=['free_energy', 'num_base_pairs', 'inverse_length'],
-        use_nupack=False  # Use heuristics for testing
+        use_viennarna=False  # Use heuristics for testing
     )
 
     # Test 1: Structured sequence with palindrome (can form hairpin)
@@ -163,7 +163,7 @@ def test_objective_tradeoffs():
     env = DNASequence(
         seq_length=15,
         objectives=['free_energy', 'num_base_pairs', 'inverse_length'],
-        use_nupack=False
+        use_viennarna=False
     )
 
     # Test trade-off: longer sequence = more base pairs but lower inverse_length
@@ -223,7 +223,7 @@ def test_mogfn_integration():
     env = DNASequence(
         seq_length=12,
         objectives=['free_energy', 'inverse_length'],
-        use_nupack=False
+        use_viennarna=False
     )
 
     # Create MOGFN model
@@ -282,7 +282,7 @@ def test_training():
     env = DNASequence(
         seq_length=10,
         objectives=['num_base_pairs', 'inverse_length'],
-        use_nupack=False
+        use_viennarna=False
     )
 
     # Create MOGFN model
@@ -357,7 +357,7 @@ def test_edge_cases():
     print("TEST 7: Edge Cases")
     print("="*80)
 
-    env = DNASequence(seq_length=5, objectives=['num_base_pairs', 'inverse_length'], use_nupack=False)
+    env = DNASequence(seq_length=5, objectives=['num_base_pairs', 'inverse_length'], use_viennarna=False)
 
     # Test 1: Empty sequence
     print("\nTest 1: Empty sequence")
