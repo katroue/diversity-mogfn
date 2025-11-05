@@ -4,14 +4,17 @@
     32,
     32
   ],
-  "loss_function": "subtrajectory_balance_09",
+  "loss_function": "subtrajectory_balance",
   "loss_params": {
+    "lambda_": 0.9,
     "log_reward_clip": 10.0
   },
   "regularization": "entropy",
   "regularization_params": {
     "beta": 0.01
   },
+  "modifications": "none",
+  "modifications_params": {},
   "preference_distribution": "dirichlet",
   "dirichlet_alpha": 1.5,
   "num_preferences_per_batch": 16,
@@ -27,8 +30,8 @@
   "num_seeds": 5,
   "base_seed": 42,
   "condition_name": "medium_low",
-  "hidden_dim": 128,
-  "num_layers": 4,
+  "hidden_dim": 64,
+  "num_layers": 3,
   "conditioning": "concat",
   "activation": "relu",
   "num_parameters": "~68K",

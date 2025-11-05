@@ -31,6 +31,7 @@ fixed:
 
   # Preference sampling
   preference_distribution: "dirichlet"
+  temperature: 2.0 # best from sampling ablation
   dirichlet_alpha: 1.5
   num_preferences_per_batch: 16
   sampling_strategy: "categorical"

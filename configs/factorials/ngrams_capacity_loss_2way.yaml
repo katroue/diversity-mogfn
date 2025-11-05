@@ -32,7 +32,7 @@ fixed:
   # objective_patterns will be auto-generated: ['AA', 'BB', 'AB', 'BA']
 
   # Sampling (FIXED)
-  temperature: 1.0             # Fixed at standard temperature
+  temperature: 2.0             # Best from sampling ablation
   sampling_strategy: "categorical"
   preference_distribution: "dirichlet"
   dirichlet_alpha: 1.5

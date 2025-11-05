@@ -6,15 +6,15 @@ This script runs factorial experiments that test interactions between
 multiple factors (e.g., capacity x sampling temperature, capacity x loss function, sampling x loss function).
 
 Supports all three factorial configurations:
-    - capacity_sampling_2way.yaml: Model capacity � Sampling temperature
-    - capacity_loss_2way.yaml: Model capacity � Loss function
-    - sampling_loss_2way.yaml: Sampling temperature � Loss function
+    - capacity_sampling_2way.yaml: Model capacity x Sampling temperature
+    - capacity_loss_2way.yaml: Model capacity x Loss function
+    - sampling_loss_2way.yaml: Sampling temperature x Loss function
 
 Usage:
-    # Run capacity � loss factorial
+    # Run capacity x loss factorial
     python scripts/factorials/molecules/run_factorial_molecules.py \
-        --config configs/factorials/molecules_capacity_sampling_2way.yaml \
-        --output_dir results/factorials/molecules_capacity_sampling
+        --config configs/factorials/molecules_sampling_loss_2way.yaml \
+        --output_dir results/factorials/molecules_sampling_loss
 
     # Dry run to preview
     python scripts/factorials/molecules/run_factorial_molecules.py \

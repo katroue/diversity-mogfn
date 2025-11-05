@@ -13,8 +13,8 @@ Supports all three factorial configurations:
 Usage:
     # Run capacity � loss factorial
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_sampling_loss_2way.yaml \
-        --output_dir results/factorials/ngrams_sampling_loss
+        --config configs/factorials/ngrams_capacity_loss_2way.yaml \
+        --output_dir results/factorials/ngrams_capacity_loss
 
     # Dry run to preview
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
@@ -162,7 +162,7 @@ def run_single_experiment(exp_config: dict,
     by using .get() with sensible defaults for parameters that may not be present in all configs.
 
     Default values:
-        - temperature: 1.0
+        - temperature: 2.0
         - sampling_strategy: 'categorical'
         - conditioning: 'concat'
         - preference_distribution: 'dirichlet'
@@ -252,7 +252,7 @@ def run_single_experiment(exp_config: dict,
         num_layers=exp_config['num_layers'],
         preference_encoding='vanilla',
         conditioning_type=exp_config.get('conditioning', 'concat'),
-        temperature=exp_config.get('temperature', 1.0),  # Default to 1.0 if not specified
+        temperature=exp_config.get('temperature', 2.0),  # Default to 1.0 if not specified
         sampling_strategy=exp_config.get('sampling_strategy', 'categorical')  # Default to categorical
     ).to(device)
 

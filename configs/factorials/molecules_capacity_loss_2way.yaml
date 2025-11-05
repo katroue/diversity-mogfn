@@ -1,0 +1,309 @@
+# ============================================================================
+# TWO-WAY FACTORIAL: CAPACITY × LOSS (N-GRAMS)
+# ============================================================================
+# Purpose: Test interaction between model capacity and loss function
+#          on the N-grams sequence generation environment
+#
+# Research Question: Does optimal loss function depend on model capacity
+#                   for discrete sequence generation?
+# Hypothesis: Small models may perform better with simpler loss functions (TB)
+#            Large models can leverage more complex losses (SubTB + regularization)
+#
+# Design: 3 × 3 factorial
+#   Factor A (Capacity): small, medium, large
+#   Factor B (Loss): TB, SubTB(0.9), SubTB(0.9)+Entropy
+#   Total: 9 combinations × 5 seeds = 45 runs
+# ============================================================================
+
+experiment_name: "ngrams_capacity_loss_2way"
+study_type: "factorial"
+
+# ============================================================================
+# FIXED PARAMETERS (Controlled across all conditions)
+# ============================================================================
+
+fixed:
+  # Task: N-grams sequence generation
+  task: "ngrams"
+  vocab_size: 4                # Vocabulary: A, B, C, D
+  seq_length: 8                # Generate 8-character sequences
+  ngram_length: 2              # Count bigrams
+  normalize_rewards: true      # Normalize counts by max possible
+  # objective_patterns will be auto-generated: ['AA', 'BB', 'AB', 'BA']
+
+  # Sampling (FIXED)
+  temperature: 2.0             # Fixed at standard temperature
+  sampling_strategy: "categorical"
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+
+  # Training
+  max_iterations: 8000  # Increased from 4000 due to 64x larger state space
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Two Factors
+# ============================================================================
+
+factors:
+
+  # Factor A: Model Capacity
+  capacity:
+    description: "Model size (hidden dim × num layers)"
+    levels:
+
+      small:
+        label: "Small (64×2)"
+        hidden_dim: 64
+        num_layers: 2
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~1.3K
+
+      medium:
+        label: "Medium (128×4)"
+        hidden_dim: 128
+        num_layers: 4
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~70K
+
+      large:
+        label: "Large (256×6)"
+        hidden_dim: 256
+        num_layers: 6
+        conditioning: "concat"
+        activation: "relu"
+        num_parameters: ~530K
+
+  # Factor B: Loss Function
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+        modifications: "none"
+        modifications_params: {}
+
+      subtb:
+        label: "SubTB(λ=0.9)"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+        modifications: "none"
+        modifications_params: {}
+
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+        modifications: "none"
+        modifications_params: {}
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (All 9 combinations)
+# ============================================================================
+
+conditions:
+  # Format: {capacity_level}_{loss_level}
+
+  # Small capacity × All losses
+  - name: "small_tb"
+    capacity: "small"
+    loss: "tb"
+
+  - name: "small_subtb"
+    capacity: "small"
+    loss: "subtb"
+
+  - name: "small_subtb_entropy"
+    capacity: "small"
+    loss: "subtb_entropy"
+
+  # Medium capacity × All losses
+  - name: "medium_tb"
+    capacity: "medium"
+    loss: "tb"
+
+  - name: "medium_subtb"
+    capacity: "medium"
+    loss: "subtb"
+
+  - name: "medium_subtb_entropy"
+    capacity: "medium"
+    loss: "subtb_entropy"
+
+  # Large capacity × All losses
+  - name: "large_tb"
+    capacity: "large"
+    loss: "tb"
+
+  - name: "large_subtb"
+    capacity: "large"
+    loss: "subtb"
+
+  - name: "large_subtb_entropy"
+    capacity: "large"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy  # MCE: Unique sequences
+    - preference_aligned_spread  # PAS: Preference-aligned diversity
+    - trajectory_diversity_score  # TDS: Path diversity
+    - quality_diversity_score  # QDS: Combined metric
+
+  secondary:
+    - hypervolume  # Quality metric
+    - final_loss  # Training convergence
+    - training_time  # Computational efficiency
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+
+  research_questions:
+
+    rq1:
+      question: "Does capacity have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "capacity"
+      metric: "mode_coverage_entropy"
+
+    rq2:
+      question: "Does loss function have a main effect on diversity?"
+      test: "one_way_anova"
+      factor: "loss"
+      metric: "mode_coverage_entropy"
+
+    rq3:
+      question: "Is there an interaction between capacity and loss?"
+      test: "two_way_anova"
+      factors: ["capacity", "loss"]
+      metric: "mode_coverage_entropy"
+      interaction_term: "capacity:loss"
+
+  statistical_tests:
+
+    - name: "factorial_anova"
+      test: "two_way_anova"
+      formula: "mce ~ C(capacity) + C(loss) + C(capacity):C(loss)"
+      alpha: 0.05
+
+    - name: "convergence_analysis"
+      description: "Check if final_loss differs by capacity or loss type"
+      test: "two_way_anova"
+      formula: "final_loss ~ C(capacity) + C(loss)"
+
+# ============================================================================
+# HYPOTHESES
+# ============================================================================
+
+hypotheses:
+
+  h1_main_capacity:
+    statement: "Model capacity has a significant main effect on diversity"
+    prediction: "Large > Medium > Small"
+    rationale: "More capacity enables learning diverse policies"
+
+  h2_main_loss:
+    statement: "Loss function has a significant main effect on diversity"
+    prediction: "SubTB+Entropy > SubTB > TB"
+    rationale: "SubTB provides better credit assignment, entropy promotes exploration"
+
+  h3_interaction:
+    statement: "There is an interaction between capacity and loss"
+    prediction: "Small models: TB ≈ SubTB (can't leverage complexity), Large models: SubTB+Entropy >> TB"
+    rationale: "Complex losses require capacity to be effective"
+
+  h4_discrete_credit:
+    statement: "SubTB advantage is larger for N-grams than HyperGrid"
+    prediction: "Stronger SubTB effect due to longer trajectories (seq_length steps)"
+    rationale: "Better credit assignment more critical for longer discrete sequences"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 45
+  estimated_time_per_run: "30 minutes"  # 8000 iterations (2x base time)
+  total_time_sequential: "23 hours"
+  total_time_parallel: "2.3 hours"  # With 10 parallel jobs
+
+  recommended_parallelization:
+    strategy: "condition_parallel"
+    max_parallel: 10
+
+  storage_per_run: "~30 MB"
+  total_storage: "~1.4 GB"
+
+# ============================================================================
+# EXPECTED RESULTS
+# ============================================================================
+
+expected_results:
+
+  best_case:
+    condition: "large_subtb_entropy"
+    expected_mce: ">0.45"
+    expected_qds: ">0.65"
+    rationale: "Large capacity + best loss + exploration regularization"
+
+  worst_case:
+    condition: "small_tb"
+    expected_mce: "<0.15"
+    expected_qds: "<0.35"
+    rationale: "Limited capacity + simple loss = mode collapse risk"
+
+  interaction_example:
+    scenario: "Small models show little difference between losses, large models show large differences"
+    interpretation: "Loss function complexity only helps when capacity is sufficient"
+
+# ============================================================================
+# NOTES
+# ============================================================================
+
+notes:
+  key_comparisons:
+    - "Compare with HyperGrid capacity_loss to identify environment-specific effects"
+    - "SubTB may show larger advantage due to longer trajectories (seq_length vs ~10 steps)"
+    - "Entropy regularization critical for discrete action space exploration"
+
+  interpretation:
+    - "Watch for mode collapse in small_tb condition"
+    - "SubTB should reduce variance in training (check final_loss std)"
+    - "Entropy effect may be stronger for N-grams (discrete actions)"
