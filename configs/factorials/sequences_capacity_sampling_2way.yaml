@@ -51,7 +51,7 @@ fixed:
   sampling_strategy: "categorical"  # Always categorical
 
   # Training
-  max_iterations: 10000  # Increased from 4000 due to 64x larger state space
+  max_iterations: 20000  # Increased from 4000 due to 64x larger state space
   batch_size: 128
   optimizer: "adam"
   learning_rate: 0.001

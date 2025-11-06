@@ -9,6 +9,7 @@
   "conditioning": "concat",
   "activation": "relu",
   "preference_distribution": "dirichlet",
+  "temperature": 2.0,
   "dirichlet_alpha": 1.5,
   "num_preferences_per_batch": 16,
   "sampling_strategy": "categorical",

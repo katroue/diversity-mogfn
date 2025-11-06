@@ -13,8 +13,8 @@ Supports all three factorial configurations:
 Usage:
     # Run capacity x sampling factorial
     python scripts/factorials/sequences/run_factorial_sequences.py \
-        --config configs/factorials/sequences_sampling_loss_2way.yaml \
-        --output_dir results/factorials/sequences_sampling_loss
+        --config configs/factorials/sequences_capacity_sampling_2way.yaml \
+        --output_dir results/factorials/sequences_capacity_sampling
 
     # Dry run to preview
     python scripts/factorials/sequences/run_factorial_sequences.py \
