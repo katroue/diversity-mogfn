@@ -7,25 +7,25 @@ multiple factors (e.g., capacity × sampling temperature, capacity × loss funct
 
 Usage:
     # Run capacity × sampling factorial
-    python scripts/factorials/hypergrid/run_factorial_experiment.py \
-        --config configs/factorials/sampling_loss_2way.yaml \
-        --output_dir results/factorials/sampling_loss
+    python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
+        --config configs/factorials/capacity_loss_2way.yaml \
+        --output_dir results/factorials/capacity_loss
 
 
     # Dry run to preview
-    python scripts/factorials/hypergrid/run_factorial_experiment.py \
+    python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
       --config configs/factorials/capacity_sampling_2way.yaml \
       --output_dir results/factorials/capacity_sampling \
-      --resume --dry-run
+      --resume
 
     # Resume interrupted experiment
-    python scripts/factorials/hypergrid/run_factorial_experiment.py \
+    python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
       --config configs/factorials/capacity_sampling_2way.yaml \
       --output_dir results/factorials/capacity_sampling \
       --resume
 
     # Run specific conditions only
-    python scripts/factorials/hypergrid/run_factorial_experiment.py \
+    python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
         --config configs/factorials/capacity_sampling_2way.yaml \
         --conditions small_low,medium_high
 """

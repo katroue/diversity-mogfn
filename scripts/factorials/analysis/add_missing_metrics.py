@@ -36,7 +36,7 @@ def get_all_experiment_dirs(results_dir: Path) -> List[Path]:
     for item in results_dir.iterdir():
         if item.is_dir() and any(
             item.name.startswith(prefix)
-            for prefix in ['small_', 'medium_', 'large_', 'xlarge_']
+            for prefix in ['low_', 'high_', 'veryhigh_']
         ):
             experiment_dirs.append(item)
 
@@ -90,8 +90,8 @@ def load_experiment_data(exp_dir: Path) -> Dict:
         'exp_name': metrics['exp_name'],
         'condition_name': metrics['condition_name'],
         # Config data
-        'capacity_level': config['capacity_level'],
         'temperature_level': config['temperature_level'],
+        'loss_level': config['loss_level'],
     }
 
     return row_data
@@ -108,7 +108,7 @@ def append_to_csv(csv_path: Path, rows: List[Dict]):
         'hypervolume', 'r2_indicator', 'avg_pairwise_distance', 'spacing', 'spread',
         'tds', 'mpd', 'mce', 'num_modes', 'pmd', 'pfs', 'pas', 'rbd', 'fci', 'qds', 'der',
         'num_parameters', 'training_time', 'final_loss', 'seed', 'exp_name',
-        'condition_name', 'capacity_level', 'temperature_level'
+        'condition_name', 'temperature_level', 'loss_level'
     ]
 
     # Append to CSV
@@ -122,8 +122,8 @@ def main():
     # Set up paths
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent.parent
-    results_dir = project_root / 'results' / 'factorials' / 'capacity_sampling'
-    csv_path = results_dir / 'results_temp.csv'
+    results_dir = project_root / 'results' / 'factorials' / 'ngrams_sampling_loss'
+    csv_path = results_dir / 'results.csv'
 
     print(f"Results directory: {results_dir}")
     print(f"CSV file: {csv_path}")

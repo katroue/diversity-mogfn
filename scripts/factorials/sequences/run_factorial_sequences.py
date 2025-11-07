@@ -24,7 +24,8 @@ Usage:
     # Resume interrupted experiment
     python scripts/factorials/sequences/run_factorial_sequences.py \
         --config configs/factorials/sequences_capacity_sampling_2way.yaml \
-        --resume
+        --output_dir results/factorials/sequences_capacity_sampling \
+        --resume --dry-run
 
     # Run specific conditions only
     python scripts/factorials/sequences/run_factorial_sequences.py \

@@ -18,8 +18,9 @@ Usage:
 
     # Dry run to preview
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_capacity_sampling_2way.yaml \
-        --dry-run
+        --config configs/factorials/ngrams_sampling_loss_2way.yaml \
+        --output_dir results/factorials/ngrams_sampling_loss \
+        --resume --dry-run
 
     # Resume interrupted experiment
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
