@@ -31,7 +31,7 @@ metrics = {
     'mce': 'Mode Coverage Entropy',
     'pas': 'Preference Aligned Spread',
     'qds': 'Quality Diversity Score',
-    'num_modes': 'Number of Modes'
+    'der': 'Diversity Entropy Ratio'
 }
 
 # Extract experiment name from exp_name column (remove seed suffix)

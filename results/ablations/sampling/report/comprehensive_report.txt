@@ -6,42 +6,37 @@ SAMPLING ABLATION STUDY - COMPREHENSIVE REPORT
 ## Exploration Temperature
 ----------------------------------------------------------------------
   Best MCE: temp_high (0.3701)
-  Best PMD: temp_high (0.0000)
   Best PAS: temp_high (0.4847)
-  Best FCI: temp_very_high (0.5585)
   Best QDS: temp_high (0.6389)
+  Best DER: temp_high (13.6896)
 
 ## Sampling Strategies
 ----------------------------------------------------------------------
   Best MCE: top_k (0.2024)
-  Best PMD: categorical (0.0000)
   Best PAS: categorical (0.1108)
-  Best FCI: top_k (0.4416)
   Best QDS: categorical (0.5187)
+  Best DER: categorical (2.5143)
 
 ## On-Policy vs Off-Policy
 ----------------------------------------------------------------------
   Best MCE: off_policy_10 (0.4534)
-  Best PMD: off_policy_10 (0.0000)
   Best PAS: off_policy_10 (0.4734)
-  Best FCI: off_policy_10 (0.4221)
   Best QDS: off_policy_10 (0.6353)
+  Best DER: off_policy_25 (15.8204)
 
 ## Preference Diversity
 ----------------------------------------------------------------------
   Best MCE: pref_dirichlet_low (0.2134)
-  Best PMD: pref_dirichlet_high (0.0000)
   Best PAS: pref_dirichlet_low (0.1122)
-  Best FCI: pref_dirichlet_high (0.4463)
   Best QDS: pref_dirichlet_low (0.5192)
+  Best DER: pref_dirichlet_low (2.5569)
 
 ## Batch Size Effects
 ----------------------------------------------------------------------
   Best MCE: batch_512 (0.1989)
-  Best PMD: batch_256 (0.0000)
   Best PAS: batch_512 (0.1089)
-  Best FCI: batch_256 (0.4439)
   Best QDS: batch_512 (0.5181)
+  Best DER: batch_32 (7.6848)
 
 
 ======================================================================
@@ -49,11 +44,11 @@ OVERALL RECOMMENDATIONS
 ======================================================================
 
 Top 5 Configurations by Average Rank:
-  1. temp_high (Average Rank: 4.14)
-  2. temp_very_high (Average Rank: 4.14)
-  3. off_policy_10 (Average Rank: 6.43)
-  4. diverse_sampling (Average Rank: 7.71)
-  5. off_policy_25 (Average Rank: 7.71)
+  1. diverse_sampling (Average Rank: 1.25)
+  2. off_policy_10 (Average Rank: 3.00)
+  3. off_policy_25 (Average Rank: 3.00)
+  4. temp_high (Average Rank: 3.00)
+  5. quality_sampling (Average Rank: 5.25)
 
 
 Key Insights:

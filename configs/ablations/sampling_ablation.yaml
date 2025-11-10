@@ -98,8 +98,8 @@ experiments:
     temperature: 1.0
     sampling_strategy: 'categorical'
     description: 'Pure on-policy training'
-  
-  - name: 'off_policy_10'
+
+  - name: 'off_policy_10' # second best configuration according to sampling ablation results ********
     off_policy_ratio: 0.1  # 10% random exploration
     temperature: 1.0
     sampling_strategy: 'categorical'
@@ -180,7 +180,7 @@ experiments:
   # 6. COMBINED BEST PRACTICES
   # ========================================
   
-  - name: 'diverse_sampling'
+  - name: 'diverse_sampling' # best configuration according to sampling ablation results ********
     temperature: 2.0
     sampling_strategy: 'nucleus'
     top_p: 0.9

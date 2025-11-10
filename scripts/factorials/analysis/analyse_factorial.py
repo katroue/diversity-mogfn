@@ -18,26 +18,21 @@ Factor levels are shown in canonical order:
 
 Usage:
     # Basic usage (auto-detects factorial design):
-    python scripts/factorials/hypergrid/analyse_factorial.py \
+    python scripts/factorials/analysis/analyse_factorial.py \
         --input results/factorials/capacity_loss/results.csv \
         --metric mce
 
     # With heatmap:
-    python scripts/factorials/hypergrid/analyse_factorial.py \
+    python scripts/factorials/analysis/analyse_factorial.py \
         --input results/factorials/capacity_loss/results.csv \
         --metric hypervolume \
         --heatmap
 
     # Specify output location:
-    python scripts/factorials/hypergrid/analyse_factorial.py \
+    python scripts/factorials/analysis/analyse_factorial.py \
         --input results/factorials/sampling_loss/results.csv \
         --metric mce \
         --output results/factorials/sampling_loss/interaction_plot_mce.pdf
-
-    # Works for any environment:
-    python scripts/factorials/ngrams/analyse_factorial.py \
-        --input results/factorials/ngrams_sampling_loss/results.csv \
-        --metric tds
 """
 
 import sys

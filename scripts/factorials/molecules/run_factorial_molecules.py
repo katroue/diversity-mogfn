@@ -18,8 +18,9 @@ Usage:
 
     # Dry run to preview
     python scripts/factorials/molecules/run_factorial_molecules.py \
-        --config configs/factorials/molecules_capacity_sampling_2way.yaml \
-        --dry-run
+        --config configs/factorials/molecules_capacity_loss_2way.yaml \
+        --output_dir results/factorials/molecules_capacity_loss \
+        --resume --dry-run
 
     # Resume interrupted experiment
     python scripts/factorials/molecules/run_factorial_molecules.py \
