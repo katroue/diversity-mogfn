@@ -8,7 +8,7 @@ inform decisions about later groups.
 
 Usage:
     # Run a specific group
-    python scripts/ablations/run_loss_ablation_group.py --group loss_modifications
+    python scripts/ablations/run_loss_ablation_group.py --group base_loss_comparison
 
     # Run all groups sequentially
     python scripts/ablations/run_loss_ablation_group.py --all
@@ -172,11 +172,11 @@ def generate_group_configs(config: dict, group_name: str) -> List[Dict]:
 
 
 def run_group(config: dict,
-             group_name: str,
-             output_dir: Path,
-             resume: bool = False,
-             dry_run: bool = False,
-             device: str = 'cpu') -> None:
+            group_name: str,
+            output_dir: Path,
+            resume: bool = False,
+            dry_run: bool = False,
+            device: str = 'cpu') -> None:
     """
     Run all experiments in a group.
 
@@ -242,7 +242,7 @@ def run_group(config: dict,
             exp_name = f"{exp_config['name']}_seed{exp_config['seed']}"
             status = "[SKIP - COMPLETED]" if exp_name in completed else "[RUN]"
             print(f"  {i:3d}. {status} {exp_name}")
-        print(f"\nTotal to run: {len([c for c in configs if f'{c['name']}_seed{c['seed']}' not in completed])}")
+        # print(f"\nTotal to run: {len([c for c in configs if f'{c['name']}_seed{c['seed']}' not in completed])}")
         return
 
     # Run experiments

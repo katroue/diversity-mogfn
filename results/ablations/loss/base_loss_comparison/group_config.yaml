@@ -33,10 +33,10 @@ group:
   group: base_loss_comparison
   vary:
     base_loss:
-    - trajectory_balance
     - detailed_balance
+    - flow_matching
+    - trajectory_balance
     - subtrajectory_balance_05
     - subtrajectory_balance_09
     - subtrajectory_balance_095
-    - flow_matching
-timestamp: '2025-11-02T07:23:30.141841'
+timestamp: '2025-11-11T15:49:54.247738'

@@ -18,14 +18,14 @@ Usage:
 
     # Dry run to preview
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
-        --config configs/factorials/ngrams_capacity_loss_2way.yaml \
-        --output_dir results/factorials/ngrams_capacity_loss \
-        --resume --dry-run
+        --config configs/factorials/ngrams_capacity_sampling_2way.yaml \
+        --dry-run
 
     # Resume interrupted experiment
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \
         --config configs/factorials/ngrams_capacity_sampling_2way.yaml \
-        --resume
+        --output_dir results/factorials/ngrams_capacity_sampling \
+        --resume --dry-run
 
     # Run specific conditions only
     python scripts/factorials/ngrams/run_factorial_experiment_ngrams.py \

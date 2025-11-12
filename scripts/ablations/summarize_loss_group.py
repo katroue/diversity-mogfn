@@ -7,7 +7,7 @@ aggregating results across seeds and ranking configurations by key metrics.
 
 Usage:
     # Summarize a specific group
-    python scripts/ablations/summarize_loss_group.py --group loss_modifications
+    python scripts/ablations/summarize_loss_group.py --group base_loss_comparison
 
     # Summarize all groups
     python scripts/ablations/summarize_loss_group.py --all
@@ -37,14 +37,25 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 
-# Key metrics for ranking (higher is better for all)
-KEY_METRICS = [
-    'hypervolume',              # Quality (Pareto front coverage)
-    'mode_coverage_entropy',    # Diversity (mode coverage)
-    'apd',# Spread (minimum distance between solutions)
-    'spacing',# Preference coverage
-    'r2_indicator',  # Combined quality-diversity
+# Key metrics for ranking
+# Separated into quality (sanity check) and diversity (primary focus) metrics
+QUALITY_METRICS = [
+    'hypervolume',              # Pareto front coverage (higher is better)
+    'pfs',                      # Pareto front smoothness (lower is better)
 ]
+
+DIVERSITY_METRICS = [
+    'mode_coverage_entropy',    # Mode discovery (higher is better)
+    'num_unique_solutions',     # Solution uniqueness (higher is better)
+    'avg_pairwise_distance',    # Overall spread (higher is better)
+]
+
+COMPOSITE_METRICS = [
+    'qds',                      # Quality-diversity score (higher is better)
+]
+
+# Combined key metrics for ranking (primary focus on diversity)
+KEY_METRICS = DIVERSITY_METRICS + QUALITY_METRICS + COMPOSITE_METRICS
 
 # Metric aliases (for backward compatibility)
 METRIC_ALIASES = {
@@ -52,6 +63,8 @@ METRIC_ALIASES = {
     'pmd': 'pairwise_minimum_distance',
     'apd': 'average_pairwise_distance',
     'qds': 'quality_diversity_score',
+    'nus': 'num_unique_solutions',
+    'n_unique': 'num_unique_solutions',
 }
 
 
@@ -174,14 +187,19 @@ def rank_configurations(summary: pd.DataFrame) -> pd.DataFrame:
     Add ranking columns for key metrics.
 
     Ranks are 1-indexed, with 1 being the best.
+    Note: PFS (Pareto Front Smoothness) is ranked ascending (lower is better).
     """
     summary = summary.copy()
+
+    # Metrics where lower is better
+    LOWER_IS_BETTER = ['pfs']
 
     for metric in KEY_METRICS:
         mean_col = f'{metric}_mean'
         if mean_col in summary.columns:
-            # Rank in descending order (higher is better)
-            summary[f'{metric}_rank'] = summary[mean_col].rank(ascending=False, method='min')
+            # Rank: lower is better for PFS, higher is better for others
+            ascending = metric in LOWER_IS_BETTER
+            summary[f'{metric}_rank'] = summary[mean_col].rank(ascending=ascending, method='min')
 
     # Compute average rank across all metrics
     rank_cols = [f'{metric}_rank' for metric in KEY_METRICS
@@ -274,10 +292,20 @@ def create_summary_report(group_name: str,
     print("BEST CONFIGURATION PER METRIC")
     print("-"*80)
 
+    # Metrics where lower is better
+    LOWER_IS_BETTER = ['pfs']
+
     for metric in KEY_METRICS:
         mean_col = f'{metric}_mean'
         if mean_col in summary.columns:
-            best_idx = summary[mean_col].idxmax()
+            # For PFS, lower is better; for others, higher is better
+            if metric in LOWER_IS_BETTER:
+                best_idx = summary[mean_col].idxmin()
+                direction = "lower is better"
+            else:
+                best_idx = summary[mean_col].idxmax()
+                direction = "higher is better"
+
             best_config = summary.loc[best_idx, 'configuration']
             best_value = summary.loc[best_idx, mean_col]
             best_std = summary.loc[best_idx, f'{metric}_std']

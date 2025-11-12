@@ -136,5 +136,50 @@ def pairwise_minimum_distance(objectives: np.ndarray, top_k: int = None) -> floa
         return 0.0
     
     distances = pdist(objectives, metric='euclidean')
-    
+
     return float(np.min(distances))
+
+
+def num_unique_solutions(objectives: np.ndarray, tolerance: float = 1e-9) -> int:
+    """
+    Count the number of unique solutions in objective space.
+
+    This metric is useful for detecting solution duplication and diversity collapse.
+    Higher values indicate more diverse solution sets.
+
+    Args:
+        objectives: Objective values, shape (N, num_objectives)
+        tolerance: Tolerance for considering two solutions as identical
+                  (default: 1e-9 for near-exact matching)
+
+    Returns:
+        num_unique: Number of unique solutions
+
+    Example:
+        >>> objectives = np.array([[0.1, 0.9], [0.1, 0.9], [0.5, 0.5], [0.9, 0.1]])
+        >>> n_unique = num_unique_solutions(objectives)
+        >>> print(f"Unique solutions: {n_unique}")  # Should print 3
+    """
+    # Convert PyTorch tensor to numpy if needed
+    if hasattr(objectives, 'cpu'):
+        objectives = objectives.cpu().numpy()
+
+    objectives = np.atleast_2d(objectives)
+
+    if len(objectives) == 0:
+        return 0
+
+    if len(objectives) == 1:
+        return 1
+
+    # Use numpy's unique with tolerance for floating point comparisons
+    # Round to handle floating point precision issues
+    if tolerance > 0:
+        # Determine number of decimal places from tolerance
+        decimals = max(0, int(-np.log10(tolerance)))
+        objectives_rounded = np.round(objectives, decimals=decimals)
+        unique_objectives = np.unique(objectives_rounded, axis=0)
+    else:
+        unique_objectives = np.unique(objectives, axis=0)
+
+    return int(len(unique_objectives))

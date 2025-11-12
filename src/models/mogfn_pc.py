@@ -770,6 +770,7 @@ class MOGFN_PC(BaseGFlowNet):
             regularization_params = {}
 
         # Compute base loss
+
         if loss_type == 'trajectory_balance':
             base_loss = self.trajectory_balance_loss(
                 trajectories, preferences, beta,

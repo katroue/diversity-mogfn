@@ -36,5 +36,11 @@
   },
   "base_loss_label": "TB",
   "regularization": "none",
-  "modifications": "standard"
+  "regularization_type": "none",
+  "regularization_params": {},
+  "regularization_label": "No Reg",
+  "modifications": "standard",
+  "modifications_type": "none",
+  "modifications_params": {},
+  "modifications_label": "Standard"
 }
