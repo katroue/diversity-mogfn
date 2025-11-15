@@ -1,13 +1,13 @@
 {
-  "hypervolume": 1.1941044513107946,
+  "hypervolume": 0.0762313159648329,
   "r2_indicator": -0.2704561490660364,
   "avg_pairwise_distance": 0.053277146199172364,
   "spacing": 0.02112775854766369,
   "spread": 1.3847949761251117,
   "tds": 0.6296926667963432,
   "mpd": 0.801592584120128,
-  "mce": 0.0,
-  "num_modes": 1,
+  "mce": 0.05615037492158095,
+  "num_modes": 3,
   "pmd": 0.0,
   "pfs": 0.002448269431768551,
   "pas": 0.053277146199172364,
@@ -22,5 +22,6 @@
   "exp_name": "flow_matching_seed486",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "num_unique_solutions": 51
 }

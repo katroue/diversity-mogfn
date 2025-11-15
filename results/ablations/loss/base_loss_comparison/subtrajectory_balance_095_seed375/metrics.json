@@ -1,5 +1,5 @@
 {
-  "hypervolume": 1.1940840760051674,
+  "hypervolume": 0.088124745991081,
   "r2_indicator": -0.2704561490660364,
   "avg_pairwise_distance": 0.48116680010167723,
   "spacing": 0.1861984133720398,
@@ -22,5 +22,6 @@
   "exp_name": "subtrajectory_balance_095_seed375",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "num_unique_solutions": 57
 }

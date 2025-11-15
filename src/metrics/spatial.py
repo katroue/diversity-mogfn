@@ -150,7 +150,7 @@ def num_unique_solutions(objectives: np.ndarray, tolerance: float = 1e-9) -> int
     Args:
         objectives: Objective values, shape (N, num_objectives)
         tolerance: Tolerance for considering two solutions as identical
-                  (default: 1e-9 for near-exact matching)
+                (default: 1e-9 for near-exact matching)
 
     Returns:
         num_unique: Number of unique solutions

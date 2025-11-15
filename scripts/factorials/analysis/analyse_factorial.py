@@ -19,7 +19,7 @@ Factor levels are shown in canonical order:
 Usage:
     # Basic usage (auto-detects factorial design):
     python scripts/factorials/analysis/analyse_factorial.py \
-        --input results/factorials/capacity_loss/results.csv \
+        --input results/factorials/sequences_sampling_loss/results.csv \
         --metric mce
 
     # With heatmap:
@@ -62,7 +62,7 @@ def detect_factorial_design(df: pd.DataFrame) -> tuple:
         ValueError: If factorial design cannot be detected
     """
     # Possible factor column names
-    possible_factors = ['capacity_level', 'temperature_level', 'loss_level']
+    possible_factors = ['capacity_level', 'temperature_sampling_level', 'loss_level']
 
     # Find which factors are present
     present_factors = [f for f in possible_factors if f in df.columns]

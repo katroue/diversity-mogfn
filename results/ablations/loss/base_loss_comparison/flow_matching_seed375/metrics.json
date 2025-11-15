@@ -1,5 +1,5 @@
 {
-  "hypervolume": 1.1869470212269113,
+  "hypervolume": 0.07352024875581264,
   "r2_indicator": -0.2696210325396799,
   "avg_pairwise_distance": 0.04214026943578447,
   "spacing": 0.022295134142041206,
@@ -22,5 +22,6 @@
   "exp_name": "flow_matching_seed375",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "num_unique_solutions": 46
 }

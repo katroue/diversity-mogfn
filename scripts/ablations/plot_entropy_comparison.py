@@ -188,20 +188,20 @@ def create_comparison_plot(df, output_path='entropy_comparison.png'):
     
     # Create horizontal bar chart
     bars6 = ax6.barh(range(len(configs)), avg_ranks, color=colors, alpha=0.7, 
-                     edgecolor='black', linewidth=1.5)
+                    edgecolor='black', linewidth=1.5)
     ax6.set_yticks(range(len(configs)))
     ax6.set_yticklabels(configs)
     ax6.set_xlabel('Average Rank (lower = better)', fontweight='bold', fontsize=11)
     ax6.set_title('(f) Overall Ranking\nAcross Key Diversity Metrics', 
-                  fontweight='bold', fontsize=12)
+                fontweight='bold', fontsize=12)
     ax6.invert_xaxis()  # Lower ranks on right (better)
     ax6.grid(axis='x', alpha=0.3)
     
     # Annotate best
     best_idx = np.argmin(avg_ranks)
     ax6.text(avg_ranks[best_idx] - 0.15, best_idx, '★ BEST OVERALL', 
-             ha='right', va='center', fontweight='bold', color='green', fontsize=11,
-             bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgreen', alpha=0.3))
+            ha='right', va='center', fontweight='bold', color='green', fontsize=11,
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='lightgreen', alpha=0.3))
     
     # ========================================================================
     # Final adjustments and save
