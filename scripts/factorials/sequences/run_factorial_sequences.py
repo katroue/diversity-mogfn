@@ -376,11 +376,6 @@ def run_single_experiment(exp_config: dict,
     metrics['exp_name'] = exp_name
     metrics['condition_name'] = exp_config['condition_name']
 
-    # Add factor level columns for analysis
-    for key in exp_config.keys():
-        if key.endswith('_level'):
-            metrics[key] = exp_config[key]
-
     # Save results
     # Save model checkpoint
     torch.save({

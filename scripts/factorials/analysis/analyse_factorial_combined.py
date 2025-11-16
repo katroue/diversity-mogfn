@@ -20,8 +20,8 @@ Usage:
     # Basic usage (combines all four tasks):
     python scripts/factorials/analysis/analyse_factorial_combined.py \
         --experiment sampling_loss \
-        --metric qds \
-        --output results/factorials/analysis/combined_sampling_loss_qds.pdf
+        --metric mce \
+        --output results/factorials/analysis/combined_sampling_loss_mce.pdf
 
     # Specify which tasks to include:
     python scripts/factorials/analysis/analyse_factorial_combined.py \
@@ -155,8 +155,8 @@ def sort_factor_levels(df: pd.DataFrame, factor_name: str) -> pd.DataFrame:
     if canonical_order is None:
         return df
 
-    # Get actual levels present in data (excluding NaN)
-    present_levels = df[factor_name].dropna().unique()
+    # Get actual levels present in data
+    present_levels = df[factor_name].unique()
 
     # Filter canonical order to only include present levels
     ordered_levels = [level for level in canonical_order if level in present_levels]
@@ -167,7 +167,6 @@ def sort_factor_levels(df: pd.DataFrame, factor_name: str) -> pd.DataFrame:
             ordered_levels.append(level)
 
     # Create categorical with specified order
-    # Note: NaN values are allowed in categorical data, they just can't be in the categories list
     df[factor_name] = pd.Categorical(df[factor_name], categories=ordered_levels, ordered=True)
 
     return df
