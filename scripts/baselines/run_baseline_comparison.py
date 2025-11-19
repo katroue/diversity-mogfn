@@ -11,11 +11,11 @@ Compares MOGFN-PC against baseline algorithms:
 Usage:
     # Run all baselines on HyperGrid
     python scripts/baselines/run_baseline_comparison.py \
-        --task hypergrid \
-        --algorithms mogfn_pc,random,nsga2 \
-        --seeds 42,153,264,375,486 \
-        --num_iterations 10000 \
-        --output_dir results/baselines/hypergrid
+      --task sequences \
+      --algorithms random,mogfn_pc,nsga2 \
+      --seeds 42,153,264,375,486 \
+      --output_dir results/baselines/sequences \
+      --eval_samples 1000
 
     # Run only Random and NSGA-II (quick test)
     python scripts/baselines/run_baseline_comparison.py \
@@ -73,17 +73,14 @@ def create_environment(task: str, **kwargs):
     elif task == 'ngrams':
         return NGrams(
             vocab_size=kwargs.get('vocab_size', 4),
-            max_length=kwargs.get('max_length', 8),
-            num_objectives=kwargs.get('num_objectives', 4)
+            seq_length=kwargs.get('seq_length', 8),
         )
     elif task == 'molecules':
         return MoleculeFragments(
-            max_length=kwargs.get('max_length', 10)
         )
     elif task == 'sequences':
         return DNASequence(
-            max_length=kwargs.get('max_length', 20),
-            num_objectives=kwargs.get('num_objectives', 3)
+            
         )
     else:
         raise ValueError(f"Unknown task: {task}")
@@ -346,7 +343,7 @@ def run_mogfn_pc_baseline(
         num_actions=env.num_actions,
         num_layers=num_layers,
         preference_encoding='vanilla',
-        conditioning_type='concat',
+        conditioning_type='film',
         temperature=2.0,
         sampling_strategy='categorical'
     ).to(device)
@@ -529,7 +526,36 @@ def aggregate_results(results_list: List[Dict[str, Any]]) -> pd.DataFrame:
 
 
 def main():
-    parser = argparse.ArgumentParser(description='Run baseline comparison')
+    # Task-specific iteration defaults (from factorial experiments)
+    TASK_DEFAULTS = {
+        'hypergrid': {'iterations': 4000, 'batch_size': 128},
+        'ngrams': {'iterations': 8000, 'batch_size': 128},
+        'molecules': {'iterations': 10000, 'batch_size': 128},
+        'sequences': {'iterations': 20000, 'batch_size': 128}
+    }
+
+    parser = argparse.ArgumentParser(
+        description='Run baseline comparison',
+        epilog="""
+Task-specific defaults (from validated factorial experiments):
+  hypergrid:  4,000 iterations, batch_size=128
+  ngrams:     8,000 iterations, batch_size=128
+  molecules: 10,000 iterations, batch_size=128
+  sequences: 20,000 iterations, batch_size=128
+
+Examples:
+  # Use task-specific defaults (4000 iterations for hypergrid)
+  python scripts/baselines/run_baseline_comparison.py \\
+      --task hypergrid --algorithms mogfn_pc,random,nsga2 --seeds 42,153,264 \\
+      --output_dir results/baselines/hypergrid
+
+  # Override with custom iterations
+  python scripts/baselines/run_baseline_comparison.py \\
+      --task hypergrid --algorithms random --seeds 42 --num_iterations 1000 \\
+      --output_dir results/baselines/test
+        """,
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument('--task', type=str, default='hypergrid',
                        choices=['hypergrid', 'ngrams', 'molecules', 'sequences'],
                        help='Task/environment to use')
@@ -537,10 +563,10 @@ def main():
                        help='Comma-separated list of algorithms to run')
     parser.add_argument('--seeds', type=str, default='42',
                        help='Comma-separated list of random seeds')
-    parser.add_argument('--num_iterations', type=int, default=1000,
-                       help='Number of training iterations/generations')
-    parser.add_argument('--batch_size', type=int, default=32,
-                       help='Batch size for Random sampling')
+    parser.add_argument('--num_iterations', type=int, default=None,
+                       help='Number of training iterations/generations (default: task-specific)')
+    parser.add_argument('--batch_size', type=int, default=None,
+                       help='Batch size for Random/MOGFN-PC sampling (default: task-specific, typically 128)')
     parser.add_argument('--pop_size', type=int, default=100,
                        help='Population size for NSGA-II')
     parser.add_argument('--output_dir', type=str, required=True,
@@ -564,6 +590,15 @@ def main():
 
     args = parser.parse_args()
 
+    # Apply task-specific defaults if not specified
+    if args.num_iterations is None:
+        args.num_iterations = TASK_DEFAULTS[args.task]['iterations']
+        logger.info(f"Using task-specific default: {args.num_iterations} iterations for {args.task}")
+
+    if args.batch_size is None:
+        args.batch_size = TASK_DEFAULTS[args.task]['batch_size']
+        logger.info(f"Using task-specific default: batch_size={args.batch_size} for {args.task}")
+
     # Parse arguments
     algorithms = args.algorithms.split(',')
     seeds = [int(s) for s in args.seeds.split(',')]
@@ -575,6 +610,7 @@ def main():
     logger.info(f"  Algorithms: {algorithms}")
     logger.info(f"  Seeds: {seeds}")
     logger.info(f"  Iterations: {args.num_iterations}")
+    logger.info(f"  Batch size: {args.batch_size}")
     logger.info(f"  Output: {output_dir}")
 
     # Create environment
@@ -626,8 +662,8 @@ def main():
                         num_iterations=args.num_iterations,
                         batch_size=args.batch_size,
                         output_dir=output_dir,
-                        hidden_dim=getattr(args, 'hidden_dim', 128),
-                        num_layers=getattr(args, 'num_layers', 4),
+                        hidden_dim=getattr(args, 'hidden_dim', 64), # medium capacity default
+                        num_layers=getattr(args, 'num_layers', 3),
                         eval_samples=getattr(args, 'eval_samples', 1000)
                     )
                 else:

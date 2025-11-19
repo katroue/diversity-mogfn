@@ -19,9 +19,9 @@ Tasks:
 Usage:
     # Basic usage (combines all four tasks):
     python scripts/factorials/analysis/analyse_factorial_combined.py \
-        --experiment sampling_loss \
-        --metric mce \
-        --output results/factorials/analysis/combined_sampling_loss_mce.pdf
+        --experiment capacity_loss \
+        --metric qds \
+        --output results/factorials/analysis/combined_capacity_loss_qds.pdf
 
     # Specify which tasks to include:
     python scripts/factorials/analysis/analyse_factorial_combined.py \
@@ -155,21 +155,24 @@ def sort_factor_levels(df: pd.DataFrame, factor_name: str) -> pd.DataFrame:
     if canonical_order is None:
         return df
 
-    # Get actual levels present in data
-    present_levels = df[factor_name].unique()
+    # Get actual levels present in data (excluding NaN)
+    present_levels = df[factor_name].dropna().unique()
 
     # Filter canonical order to only include present levels
     ordered_levels = [level for level in canonical_order if level in present_levels]
 
-    # Add any levels not in canonical order (at the end)
+    # Add any levels not in canonical order (at the end), but exclude NaN
     for level in present_levels:
-        if level not in ordered_levels:
+        if level not in ordered_levels and pd.notna(level):
             ordered_levels.append(level)
 
-    # Create categorical with specified order
-    df[factor_name] = pd.Categorical(df[factor_name], categories=ordered_levels, ordered=True)
+    # Drop rows with NaN in factor column before creating categorical
+    df_clean = df.dropna(subset=[factor_name]).copy()
 
-    return df
+    # Create categorical with specified order
+    df_clean[factor_name] = pd.Categorical(df_clean[factor_name], categories=ordered_levels, ordered=True)
+
+    return df_clean
 
 
 def load_task_data(experiment: str, task: str, use_temp: bool = False) -> pd.DataFrame:
@@ -483,6 +486,118 @@ def create_combined_heatmap(
     plt.close()
 
 
+def create_small_multiples_grid(
+    task_data: Dict[str, pd.DataFrame],
+    factor_a: str,
+    factor_b: str,
+    metric: str,
+    output_path: Path
+):
+    """
+    Create 2×2 grid of heatmaps for all tasks with consistent color scale.
+
+    Args:
+        task_data: Dict mapping task name to DataFrame
+        factor_a: Name of first factor
+        factor_b: Name of second factor
+        metric: Metric to plot
+        output_path: Where to save the plot
+    """
+    # Determine grid size based on number of tasks
+    num_tasks = len(task_data)
+    if num_tasks <= 2:
+        nrows, ncols = 1, num_tasks
+        figsize = (7 * ncols, 6)
+    elif num_tasks <= 4:
+        nrows, ncols = 2, 2
+        figsize = (14, 12)
+    else:
+        nrows = (num_tasks + 2) // 3
+        ncols = 3
+        figsize = (7 * ncols, 6 * nrows)
+
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize)
+
+    # Flatten axes for easier indexing
+    if num_tasks == 1:
+        axes = [axes]
+    else:
+        axes = axes.flatten()
+
+    # Compute global min/max for consistent color scale
+    all_pivots = []
+    task_names_ordered = ['hypergrid', 'ngrams', 'molecules', 'sequences']
+    task_names_ordered = [t for t in task_names_ordered if t in task_data]
+
+    for task_name in task_names_ordered:
+        df = task_data[task_name]
+        # Sort factor levels
+        df = sort_factor_levels(df.copy(), factor_a)
+        df = sort_factor_levels(df, factor_b)
+
+        # Create pivot table
+        pivot = df.pivot_table(
+            values=metric,
+            index=factor_b,
+            columns=factor_a,
+            aggfunc='mean',
+            observed=False
+        )
+        all_pivots.append(pivot)
+
+    # Find global min/max
+    all_values = pd.concat([p.stack() for p in all_pivots])
+    vmin, vmax = all_values.min(), all_values.max()
+
+    # Create heatmaps
+    for idx, task_name in enumerate(task_names_ordered):
+        pivot = all_pivots[idx]
+
+        # Create heatmap with shared colorbar scale
+        sns.heatmap(
+            pivot,
+            annot=True,
+            fmt='.3f',
+            cmap='YlGnBu',
+            ax=axes[idx],
+            vmin=vmin,
+            vmax=vmax,
+            cbar_kws={'label': metric.upper() if len(metric) <= 3 else metric.replace('_', ' ').title()},
+            annot_kws={'fontsize': 10}
+        )
+
+        axes[idx].set_xlabel(get_factor_label(factor_a), fontsize=11, fontweight='bold')
+        axes[idx].set_ylabel(get_factor_label(factor_b), fontsize=11, fontweight='bold')
+        axes[idx].set_title(f'{TASK_CONFIGS[task_name]["label"]}', fontsize=13, fontweight='bold')
+
+    # Hide unused subplots
+    for idx in range(len(task_names_ordered), len(axes)):
+        axes[idx].axis('off')
+
+    # Overall title
+    metric_title = metric.upper() if len(metric) <= 3 else metric.replace('_', ' ').title()
+    fig.suptitle(
+        f'{get_factor_label(factor_a)} × {get_factor_label(factor_b)} Interaction\n{metric_title} Across All Tasks',
+        fontsize=16,
+        fontweight='bold',
+        y=0.995
+    )
+
+    plt.tight_layout(rect=[0, 0, 1, 0.98])
+
+    # Save
+    grid_path = output_path.parent / f'grid_{metric}_{factor_a}_{factor_b}.pdf'
+    plt.savefig(grid_path, dpi=300, bbox_inches='tight')
+    print(f"✓ Saved small multiples grid to: {grid_path}")
+
+    # PNG version
+    png_path = grid_path.with_suffix('.png')
+    plt.savefig(png_path, dpi=300, bbox_inches='tight')
+    print(f"✓ Saved PNG version to: {png_path}")
+
+    plt.close()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Analyze factorial experiments across all tasks (hypergrid, ngrams, molecules, sequences)',
@@ -531,6 +646,12 @@ def main():
         '--heatmap',
         action='store_true',
         help='Also create combined heatmap visualizations'
+    )
+
+    parser.add_argument(
+        '--grid',
+        action='store_true',
+        help='Create small multiples grid (2×2 layout of heatmaps for all tasks)'
     )
 
     args = parser.parse_args()
@@ -589,6 +710,17 @@ def main():
     if args.heatmap:
         print(f"\nCreating combined heatmap...")
         create_combined_heatmap(
+            task_data,
+            factor_a,
+            factor_b,
+            args.metric,
+            args.output
+        )
+
+    # Create small multiples grid if requested
+    if args.grid:
+        print(f"\nCreating small multiples grid (2×2 layout)...")
+        create_small_multiples_grid(
             task_data,
             factor_a,
             factor_b,

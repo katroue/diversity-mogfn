@@ -21,11 +21,11 @@ Usage:
         --config configs/factorials/sequences_capacity_sampling_2way.yaml \
         --dry-run
 
-    # Resume interrupted experiment
-    python scripts/factorials/sequences/run_factorial_sequences.py \
+    # Resume interrupted experiment with high priority
+    sudo nice -n -20 python scripts/factorials/sequences/run_factorial_sequences.py \
         --config configs/factorials/sequences_capacity_sampling_2way.yaml \
         --output_dir results/factorials/sequences_capacity_sampling \
-        --resume --dry-run
+        --resume
 
     # Run specific conditions only
     python scripts/factorials/sequences/run_factorial_sequences.py \

@@ -122,7 +122,7 @@ def main():
     # Set up paths
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent.parent
-    results_dir = project_root / 'results' / 'factorials' / 'molecules_capacity_sampling'
+    results_dir = project_root / 'results' / 'factorials' / 'sequences_capacity_sampling'
     csv_path = results_dir / 'results.csv'
 
     print(f"Results directory: {results_dir}")

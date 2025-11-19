@@ -19,7 +19,7 @@ experiments:
     num_layers: 3
     conditioning: concat
   
-  - name : medium_film
+  - name : medium_film # best found 
     capacity: medium
     hidden_dim: 64
     num_layers: 3

@@ -21,9 +21,9 @@ fixed:
   eval_every: 500  # Evaluate every 500 iterations, testing with evaluations every 200 iterations
   
   # Model architecture (BEST FROM CAPACITY ABLATION)
-  hidden_dim: 128
-  num_layers: 4
-  conditioning: 'concat'  # Best from capacity ablation
+  hidden_dim: 64
+  num_layers: 3
+  conditioning: 'film'  # Best from capacity ablation
   
   # Logging
   wandb: false

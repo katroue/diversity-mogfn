@@ -16,6 +16,7 @@ Reference:
     IEEE transactions on evolutionary computation, 6(2), 182-197.
 """
 
+import copy
 import numpy as np
 from typing import List, Tuple, Optional, Dict, Any
 import logging
@@ -89,6 +90,36 @@ if PYMOO_AVAILABLE:
                 f"Created EnvironmentProblem: {n_var} vars, {n_obj} objectives, "
                 f"max_steps={max_steps}"
             )
+
+        def __getstate__(self):
+            """Custom pickling to exclude non-picklable environment."""
+            state = self.__dict__.copy()
+            # Store only what we need to reconstruct, but not the env itself
+            state['_env_excluded'] = True
+            return state
+
+        def __setstate__(self, state):
+            """Custom unpickling to handle excluded environment."""
+            self.__dict__.update(state)
+            # Note: env will be None after unpickling, but that's ok for pymoo's deepcopy
+            # The original problem instance still has the env reference
+
+        def __deepcopy__(self, memo):
+            """Custom deepcopy that shares the environment reference."""
+            # Create new instance without calling __init__
+            cls = self.__class__
+            result = cls.__new__(cls)
+            memo[id(self)] = result
+
+            # Copy all attributes except env (share env reference)
+            for k, v in self.__dict__.items():
+                if k == 'env':
+                    # Share the environment reference instead of copying
+                    setattr(result, k, v)
+                else:
+                    setattr(result, k, copy.deepcopy(v, memo))
+
+            return result
 
         def _evaluate(self, X, out, *args, **kwargs):
             """
@@ -360,6 +391,40 @@ class NSGA2Adapter:
         # Negate back to maximize
         all_objectives = -self.result.pop.get("F")
         return all_objectives
+
+    def get_objectives_for_eval(self, num_samples: int) -> np.ndarray:
+        """
+        Sample objectives from final population for fair evaluation.
+
+        If num_samples > pop_size, samples with replacement from the population.
+        This ensures fair comparison when evaluating against methods that use
+        more samples (e.g., MOGFN-PC with 1000 eval samples).
+
+        Args:
+            num_samples: Number of objective samples to return
+
+        Returns:
+            Array of shape (num_samples, num_objectives)
+        """
+        if self.result is None:
+            raise ValueError("Must call train() before getting objectives")
+
+        # Get final population objectives
+        all_objectives = -self.result.pop.get("F")
+        pop_size = len(all_objectives)
+
+        if num_samples <= pop_size:
+            # Sample without replacement
+            indices = self.rng.choice(pop_size, size=num_samples, replace=False)
+        else:
+            # Sample with replacement to reach num_samples
+            logger.info(
+                f"Sampling {num_samples} objectives from pop_size={pop_size} "
+                f"(with replacement)"
+            )
+            indices = self.rng.choice(pop_size, size=num_samples, replace=True)
+
+        return all_objectives[indices]
 
     def reset(self):
         """Reset the algorithm (requires re-initialization)."""

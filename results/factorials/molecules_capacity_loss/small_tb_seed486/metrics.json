@@ -6,8 +6,8 @@
   "spread": 1.1946093138445448,
   "tds": 0.9034159089090957,
   "mpd": 0.6931471805599454,
-  "mce": 0.6767126296360454,
-  "num_modes": 2,
+  "mce": 0.2945286041012945,
+  "num_modes": 163,
   "pmd": 0.0,
   "pfs": 0.00015764535573554642,
   "pas": 0.3763666993175965,
@@ -20,5 +20,7 @@
   "final_loss": 0.0550675131380558,
   "seed": 486,
   "exp_name": "small_tb_seed486",
-  "condition_name": "small_tb"
+  "condition_name": "small_tb",
+  "capacity_level": "small",
+  "loss_level": "tb"
 }

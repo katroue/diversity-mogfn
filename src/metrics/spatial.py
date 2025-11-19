@@ -35,23 +35,36 @@ def mode_coverage_entropy(solutions_obj_space, eps='auto',min_samples=5):
             nbrs = neigh.fit(solutions_obj_space)
             distances, _ = nbrs.kneighbors(solutions_obj_space)
             k_distances = np.sort(distances[:, -1])
-            
-            # Heuristic: choose eps at the elbow point
-            diffs = np.diff(k_distances)
-            eps_candidate = k_distances[np.argmax(diffs)] if len(diffs) > 0 else 0
-            
-            # FIXED: Ensure eps is always positive and reasonable
-            if eps_candidate <= 0 or np.isnan(eps_candidate):
-                # Fallback: use median of k-distances
-                eps = np.median(k_distances)
+
+            # FIXED: Improved elbow detection to avoid outliers
+            # Instead of using argmax on full array, use percentile-based approach
+            # to find elbow in the main body of the distribution (ignore tail outliers)
+            n_consider = int(len(k_distances) * 0.90)  # Consider first 90%
+
+            if n_consider < 2:
+                n_consider = len(k_distances)
+
+            diffs = np.diff(k_distances[:n_consider])
+
+            if len(diffs) > 0:
+                elbow_idx = np.argmax(diffs)
+                eps_candidate = k_distances[elbow_idx]
+            else:
+                eps_candidate = 0
+
+            # FIXED: Validate eps is reasonable (not too large)
+            # eps should not exceed 75th percentile of k-distances
+            max_reasonable_eps = np.percentile(k_distances, 75)
+
+            if eps_candidate <= 0 or np.isnan(eps_candidate) or eps_candidate > max_reasonable_eps:
+                # Fallback: use mean of ALL k-distances (including zeros)
+                # This gives a more conservative eps that accounts for duplicates
+                eps = np.mean(k_distances)
                 if eps <= 0 or np.isnan(eps):
-                    # Last resort: use mean distance
-                    eps = np.mean(distances[:, -1])
+                    # All distances are zero (all duplicates) - use small value
+                    eps = np.std(solutions_obj_space) / 10
                     if eps <= 0 or np.isnan(eps):
-                        # Ultimate fallback: use standard deviation
-                        eps = np.std(solutions_obj_space) / 2
-                        if eps <= 0:
-                            eps = 0.1
+                        eps = 0.05  # Conservative default
             else:
                 eps = float(eps_candidate)
         except Exception as e:

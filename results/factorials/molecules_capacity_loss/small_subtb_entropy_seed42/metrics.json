@@ -6,8 +6,8 @@
   "spread": 1.2522929032547532,
   "tds": 0.9080227743271222,
   "mpd": 0.6931471805599453,
-  "mce": 0.6894961548631443,
-  "num_modes": 2,
+  "mce": 0.1694590965650795,
+  "num_modes": 28,
   "pmd": 0.0,
   "pfs": 3.927755870886848e-14,
   "pas": 0.3648677087099388,
@@ -20,5 +20,7 @@
   "final_loss": -0.09344913065433502,
   "seed": 42,
   "exp_name": "small_subtb_entropy_seed42",
-  "condition_name": "small_subtb_entropy"
+  "condition_name": "small_subtb_entropy",
+  "capacity_level": "small",
+  "loss_level": "subtb_entropy"
 }
