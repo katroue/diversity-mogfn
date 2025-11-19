@@ -12,7 +12,7 @@ Supports all three factorial configurations:
 
 Usage:
     # Run capacity x sampling factorial
-    python scripts/factorials/sequences/run_factorial_sequences.py \
+    sudo nice -n -20 python scripts/factorials/sequences/run_factorial_sequences.py \
         --config configs/factorials/sequences_capacity_sampling_2way.yaml \
         --output_dir results/factorials/sequences_capacity_sampling
 
@@ -22,7 +22,7 @@ Usage:
         --dry-run
 
     # Resume interrupted experiment with high priority
-    sudo nice -n -20 python scripts/factorials/sequences/run_factorial_sequences.py \
+    c python scripts/factorials/sequences/run_factorial_sequences.py \
         --config configs/factorials/sequences_capacity_sampling_2way.yaml \
         --output_dir results/factorials/sequences_capacity_sampling \
         --resume

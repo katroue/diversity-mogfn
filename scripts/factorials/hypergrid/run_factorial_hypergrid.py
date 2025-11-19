@@ -7,7 +7,7 @@ multiple factors (e.g., capacity × sampling temperature, capacity × loss funct
 
 Usage:
     # Run capacity × sampling factorial
-    python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
+    sudo nice -n -15 python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
         --config configs/factorials/capacity_loss_2way.yaml \
         --output_dir results/factorials/capacity_loss
 
