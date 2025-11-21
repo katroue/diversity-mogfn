@@ -5,17 +5,17 @@ Run baseline comparison experiments.
 Compares MOGFN-PC against baseline algorithms:
 - Random Sampling
 - NSGA-II
+- HN-GFN (Hypernetwork-GFlowNet)
 - (Future) Single-Objective GFlowNet
-- (Future) HN-GFN
 
 Usage:
     # Run all baselines on HyperGrid
     python scripts/baselines/run_baseline_comparison.py \
-      --task sequences \
-      --algorithms random,mogfn_pc,nsga2 \
-      --seeds 42,153,264,375,486 \
-      --output_dir results/baselines/sequences \
-      --eval_samples 1000
+        --task sequences \
+        --algorithms random,mogfn_pc,nsga2,hngfn \
+        --seeds 42,153,264,375,486 \
+        --output_dir results/baselines/sequences \
+        --eval_samples 1000
 
     # Run only Random and NSGA-II (quick test)
     python scripts/baselines/run_baseline_comparison.py \
@@ -24,6 +24,22 @@ Usage:
         --seeds 42 \
         --num_iterations 1000 \
         --output_dir results/baselines/test
+
+    # Compare MOGFN-PC and HN-GFN
+    python scripts/baselines/run_baseline_comparison.py \
+        --task hypergrid \
+        --algorithms mogfn_pc,hngfn \
+        --seeds 42,153,264,375,486 \
+        --output_dir results/baselines/mogfn_vs_hngfn
+
+Task-specific HN-GFN examples:
+    # HyperGrid (4000 iterations, default architecture)
+    sudo nice -10 python scripts/baselines/run_baseline_comparison.py \
+        --task sequences \
+        --algorithms hngfn \
+        --seeds 42,153,264,375,486 \
+        --output_dir results/baselines/sequences
+
 """
 
 import sys
@@ -41,7 +57,7 @@ import logging
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from src.models.baselines import RandomSampler, NSGA2Adapter
+from src.models.baselines import RandomSampler, NSGA2Adapter, HN_GFN
 from src.models.mogfn_pc import MOGFN_PC, PreferenceSampler, MOGFNTrainer, MOGFNSampler
 from src.environments.hypergrid import HyperGrid
 from src.environments.ngrams import NGrams
@@ -507,6 +523,206 @@ def run_mogfn_pc_baseline(
     return metrics
 
 
+def run_hngfn_baseline(
+    env,
+    seed: int,
+    num_iterations: int,
+    batch_size: int,
+    output_dir: Path,
+    hidden_dim: int = 128,
+    num_layers: int = 4,
+    z_hidden_dim: int = 64,
+    z_num_layers: int = 3,
+    eval_samples: int = 1000,
+    device: str = 'cpu'
+) -> Dict[str, Any]:
+    """Run HN-GFN (Hypernetwork-GFlowNet) baseline."""
+    logger.info(f"Running HN-GFN (seed={seed})")
+
+    exp_dir = output_dir / f"hngfn_seed{seed}"
+    exp_dir.mkdir(parents=True, exist_ok=True)
+
+    # Set seed
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+    # Create HN-GFN model
+    logger.info(
+        f"Creating HN-GFN model (hidden_dim={hidden_dim}, num_layers={num_layers}, "
+        f"z_hidden_dim={z_hidden_dim}, z_num_layers={z_num_layers})..."
+    )
+    hngfn = HN_GFN(
+        env=env,
+        state_dim=env.state_dim,
+        num_objectives=env.num_objectives,
+        hidden_dim=hidden_dim,
+        num_actions=env.num_actions,
+        num_layers=num_layers,
+        z_hidden_dim=z_hidden_dim,
+        z_num_layers=z_num_layers,
+        preference_encoding='vanilla',
+        conditioning_type='film',
+        learning_rate=1e-3,
+        z_learning_rate=1e-3,
+        alpha=1.5,
+        max_steps=100,
+        temperature=2.0,
+        seed=seed
+    )
+
+    # Count parameters
+    num_params = (
+        sum(p.numel() for p in hngfn.model.parameters()) +
+        sum(p.numel() for p in hngfn.Z_network.parameters())
+    )
+    logger.info(f"Model parameters: {num_params:,} (policy + Z hypernetwork)")
+
+    # Train
+    logger.info(f"Starting HN-GFN training ({num_iterations} iterations)...")
+    start_time = datetime.now()
+
+    training_history = hngfn.train(
+        num_iterations=num_iterations,
+        batch_size=batch_size,
+        log_interval=max(100, num_iterations // 10)
+    )
+
+    training_time = (datetime.now() - start_time).total_seconds()
+    logger.info(f"HN-GFN training completed in {training_time:.1f} seconds")
+
+    # Evaluate (sample with diverse preferences)
+    logger.info(f"Evaluating with {eval_samples} samples...")
+    objectives, states = hngfn.sample(num_samples=eval_samples)
+
+    # Compute all metrics (including GFlowNet-specific ones)
+    logger.info("Computing all metrics (including trajectory/flow metrics)...")
+    metrics = {}
+
+    # Subsample if needed
+    original_size = len(objectives)
+    MAX_SAMPLES_FOR_METRICS = 5000
+
+    if original_size > MAX_SAMPLES_FOR_METRICS:
+        logger.warning(f"  Subsampling {original_size} to {MAX_SAMPLES_FOR_METRICS} for metrics...")
+        indices = np.random.choice(original_size, size=MAX_SAMPLES_FOR_METRICS, replace=False)
+        objectives_for_metrics = objectives[indices]
+    else:
+        objectives_for_metrics = objectives
+
+    # Traditional metrics
+    logger.info("  Computing traditional metrics...")
+    reference_point = np.array([1.1] * env.num_objectives)
+    traditional = compute_all_traditional_metrics(objectives_for_metrics, reference_point)
+    metrics.update(traditional)
+
+    # Trajectory metrics (sample some trajectories)
+    logger.info("  Computing trajectory metrics (sampling trajectories)...")
+    trajectories = []
+    num_traj_samples = min(100, eval_samples)
+    for i in range(num_traj_samples):
+        traj = hngfn.sample_trajectory(explore=False)
+        if traj.is_terminal:
+            # Convert to standard Trajectory format for metrics
+            from src.models.gflownet import Trajectory
+            traj_converted = Trajectory(
+                states=traj.states,
+                actions=traj.actions,
+                log_probs=traj.log_probs,
+                is_terminal=traj.is_terminal
+            )
+            trajectories.append(traj_converted)
+
+    if len(trajectories) > 0:
+        metrics['tds'] = trajectory_diversity_score(trajectories)
+        metrics['mpd'] = multi_path_diversity(trajectories)
+    else:
+        metrics['tds'] = 0.0
+        metrics['mpd'] = 0.0
+
+    # Spatial metrics
+    logger.info("  Computing spatial metrics...")
+    metrics['mce'], metrics['num_modes'] = mode_coverage_entropy(objectives_for_metrics)
+    metrics['pmd'] = pairwise_minimum_distance(objectives_for_metrics)
+    metrics['pfs'] = pareto_front_smoothness(objectives_for_metrics)
+    metrics['num_unique_solutions'] = len(np.unique(objectives, axis=0))
+
+    # Objective metrics (simplified PAS)
+    logger.info("  Computing PAS...")
+    if len(objectives_for_metrics) > 10:
+        dists = pdist(objectives_for_metrics, metric='euclidean')
+        metrics['pas'] = float(np.mean(dists))
+    else:
+        metrics['pas'] = 0.0
+
+    # Dynamics metrics
+    logger.info("  Computing dynamics metrics...")
+    if len(trajectories) > 0:
+        metrics['rbd'] = replay_buffer_diversity(trajectories, metric='trajectory_distance')
+    else:
+        metrics['rbd'] = 0.0
+
+    # Flow metrics
+    logger.info("  Computing flow metrics...")
+    state_visits = {}
+    for traj in trajectories:
+        for state in traj.states:
+            state_key = to_hashable(state)
+            state_visits[state_key] = state_visits.get(state_key, 0) + 1
+    if state_visits:
+        metrics['fci'] = flow_concentration_index(state_visits)
+    else:
+        metrics['fci'] = 0.0
+
+    # Composite metrics
+    logger.info("  Computing composite metrics...")
+    qds_results = quality_diversity_score(objectives_for_metrics, reference_point, alpha=0.5)
+    metrics['qds'] = qds_results['qds']
+
+    der_results = diversity_efficiency_ratio(
+        objectives_for_metrics,
+        training_time=training_time,
+        num_parameters=num_params
+    )
+    metrics['der'] = der_results['der']
+
+    # Metadata
+    metrics['num_parameters'] = num_params
+    metrics['training_time'] = training_time
+    metrics['final_loss'] = training_history['loss'][-1] if training_history.get('loss') else 0.0
+    metrics['algorithm'] = 'hngfn'
+    metrics['num_samples'] = original_size
+    metrics['num_samples_for_metrics'] = len(objectives_for_metrics)
+    metrics['seed'] = seed
+    metrics['hidden_dim'] = hidden_dim
+    metrics['num_layers'] = num_layers
+    metrics['z_hidden_dim'] = z_hidden_dim
+    metrics['z_num_layers'] = z_num_layers
+
+    # Save results
+    logger.info(f"Saving results to {exp_dir}...")
+    hngfn.save(str(exp_dir / 'checkpoint.pt'))
+
+    np.save(exp_dir / 'objectives.npy', objectives)
+
+    # Get Pareto front
+    pareto_front = hngfn.get_pareto_front()
+    np.save(exp_dir / 'pareto_front.npy', pareto_front)
+    metrics['pareto_size'] = len(pareto_front)
+
+    with open(exp_dir / 'metrics.json', 'w') as f:
+        json.dump(metrics, f, indent=2)
+
+    with open(exp_dir / 'training_history.json', 'w') as f:
+        json.dump(training_history, f, indent=2)
+
+    logger.info(
+        f"HN-GFN complete: {len(objectives)} solutions, "
+        f"{len(pareto_front)} Pareto optimal, HV={metrics.get('hypervolume', 0):.4f}"
+    )
+
+    return metrics
+
+
 def aggregate_results(results_list: List[Dict[str, Any]]) -> pd.DataFrame:
     """Aggregate results across seeds into DataFrame."""
     if not results_list:
@@ -546,8 +762,13 @@ Task-specific defaults (from validated factorial experiments):
 Examples:
   # Use task-specific defaults (4000 iterations for hypergrid)
   python scripts/baselines/run_baseline_comparison.py \\
-      --task hypergrid --algorithms mogfn_pc,random,nsga2 --seeds 42,153,264 \\
+      --task hypergrid --algorithms mogfn_pc,hngfn,random,nsga2 --seeds 42,153,264 \\
       --output_dir results/baselines/hypergrid
+
+  # Compare MOGFN-PC and HN-GFN
+  python scripts/baselines/run_baseline_comparison.py \\
+      --task hypergrid --algorithms mogfn_pc,hngfn --seeds 42,153,264,375,486 \\
+      --output_dir results/baselines/mogfn_vs_hngfn
 
   # Override with custom iterations
   python scripts/baselines/run_baseline_comparison.py \\
@@ -580,13 +801,17 @@ Examples:
     parser.add_argument('--reward_config', type=str, default='corners',
                        help='Reward configuration (HyperGrid only)')
 
-    # MOGFN-PC specific args
+    # MOGFN-PC and HN-GFN specific args
     parser.add_argument('--hidden_dim', type=int, default=128,
-                       help='Hidden dimension for MOGFN-PC (default: 128)')
+                       help='Hidden dimension for policy networks in MOGFN-PC/HN-GFN (default: 128)')
     parser.add_argument('--num_layers', type=int, default=4,
-                       help='Number of layers for MOGFN-PC (default: 4)')
+                       help='Number of layers for policy networks in MOGFN-PC/HN-GFN (default: 4)')
+    parser.add_argument('--z_hidden_dim', type=int, default=64,
+                       help='Hidden dimension for Z hypernetwork in HN-GFN (default: 64)')
+    parser.add_argument('--z_num_layers', type=int, default=3,
+                       help='Number of layers for Z hypernetwork in HN-GFN (default: 3)')
     parser.add_argument('--eval_samples', type=int, default=1000,
-                       help='Number of evaluation samples for MOGFN-PC (default: 1000)')
+                       help='Number of evaluation samples for MOGFN-PC/HN-GFN (default: 1000)')
 
     args = parser.parse_args()
 
@@ -662,9 +887,22 @@ Examples:
                         num_iterations=args.num_iterations,
                         batch_size=args.batch_size,
                         output_dir=output_dir,
-                        hidden_dim=getattr(args, 'hidden_dim', 64), # medium capacity default
-                        num_layers=getattr(args, 'num_layers', 3),
-                        eval_samples=getattr(args, 'eval_samples', 1000)
+                        hidden_dim=args.hidden_dim,
+                        num_layers=args.num_layers,
+                        eval_samples=args.eval_samples
+                    )
+                elif algorithm == 'hngfn':
+                    metrics = run_hngfn_baseline(
+                        env,
+                        seed=seed,
+                        num_iterations=args.num_iterations,
+                        batch_size=args.batch_size,
+                        output_dir=output_dir,
+                        hidden_dim=args.hidden_dim,
+                        num_layers=args.num_layers,
+                        z_hidden_dim=args.z_hidden_dim,
+                        z_num_layers=args.z_num_layers,
+                        eval_samples=args.eval_samples
                     )
                 else:
                     logger.warning(f"Unknown algorithm: {algorithm}")

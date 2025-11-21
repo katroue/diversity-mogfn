@@ -92,10 +92,10 @@ python scripts/baselines/run_baseline_comparison.py \
     --num_iterations 1000 \
     --output_dir results/baselines/test
 
-# Full comparison with multiple seeds
+# Full comparison with multiple seeds and HN-GFN
 python scripts/baselines/run_baseline_comparison.py \
     --task hypergrid \
-    --algorithms random,nsga2 \
+    --algorithms random,nsga2,hngfn \
     --seeds 42,153,264,375,486 \
     --num_iterations 10000 \
     --pop_size 100 \
@@ -104,10 +104,10 @@ python scripts/baselines/run_baseline_comparison.py \
 
 **Arguments**:
 - `--task`: Environment to use (`hypergrid`, `ngrams`, `molecules`, `sequences`)
-- `--algorithms`: Comma-separated list of algorithms (`random`, `nsga2`)
+- `--algorithms`: Comma-separated list of algorithms (`random`, `nsga2`, `hngfn`)
 - `--seeds`: Comma-separated list of random seeds
-- `--num_iterations`: Training iterations (Random) or generations (NSGA-II)
-- `--batch_size`: Batch size for Random sampling (default: 32)
+- `--num_iterations`: Training iterations (Random/HN-GFN) or generations (NSGA-II)
+- `--batch_size`: Batch size for Random/HN-GFN sampling (default: 32)
 - `--pop_size`: Population size for NSGA-II (default: 100)
 - `--output_dir`: Directory to save results
 
@@ -123,8 +123,15 @@ results/baselines/hypergrid/
 │   ├── objectives.npy
 │   ├── pareto_front.npy
 │   └── training_history.json
+├── hngfn_seed42/
+│   ├── metrics.json
+│   ├── objectives.npy
+│   ├── pareto_front.npy
+│   ├── checkpoint.pt
+│   └── training_history.json
 ├── random_results.csv
 ├── nsga2_results.csv
+├── hngfn_results.csv
 ├── all_results.csv
 └── summary_by_algorithm.csv
 ```
@@ -153,7 +160,7 @@ To compare your diversity metrics approach against these baselines:
 for task in hypergrid ngrams molecules sequences; do
     python scripts/baselines/run_baseline_comparison.py \
         --task $task \
-        --algorithms random,nsga2 \
+        --algorithms random,nsga2,hngfn \
         --seeds 42,153,264,375,486 \
         --num_iterations 10000 \
         --output_dir results/baselines/$task
@@ -174,20 +181,84 @@ Use the CSV outputs to run t-tests, ANOVA, or other statistical comparisons acro
 
 ---
 
+### 3. Hypernetwork-GFlowNet (`hn_gfn.py`)
+
+**Description**: Uses a preference-conditioned hypernetwork for the log partition function Z instead of a fixed learned parameter.
+
+**Dependencies**: Requires PyTorch (already installed)
+
+**Use case**: State-of-the-art baseline from NeurIPS 2023 that improves sample efficiency in multi-objective settings.
+
+**API**:
+```python
+from src.models.baselines import HN_GFN
+from src.environments.hypergrid import HyperGrid
+
+env = HyperGrid(height=8, num_objectives=2)
+state_dim = env.state_dim  # State dimension (2 for HyperGrid coordinates)
+num_actions = env.num_actions  # Number of actions (3 for HyperGrid: right, up, done)
+
+hngfn = HN_GFN(
+    env=env,
+    state_dim=state_dim,
+    num_objectives=env.num_objectives,
+    hidden_dim=64,
+    num_actions=num_actions,
+    num_layers=3,
+    z_hidden_dim=64,
+    z_num_layers=3,
+    learning_rate=1e-3,
+    z_learning_rate=1e-3,
+    alpha=1.5,
+    seed=42
+)
+
+# Train HN-GFN
+history = hngfn.train(num_iterations=1000, batch_size=32)
+
+# Sample solutions
+objectives, states = hngfn.sample(num_samples=100)
+
+# Get results
+all_objectives = hngfn.get_all_objectives()
+pareto_front = hngfn.get_pareto_front()
+```
+
+**Parameters**:
+- `state_dim`: Dimension of state space
+- `num_objectives`: Number of objectives
+- `hidden_dim`: Hidden dimension for policy networks (default: 64)
+- `num_actions`: Number of possible actions
+- `num_layers`: Layers in policy networks (default: 3)
+- `z_hidden_dim`: Hidden dimension for Z hypernetwork (default: 64)
+- `z_num_layers`: Layers in Z hypernetwork (default: 3)
+- `learning_rate`: Learning rate for policy (default: 1e-3)
+- `z_learning_rate`: Learning rate for Z hypernetwork (default: 1e-3)
+- `alpha`: Dirichlet concentration parameter (default: 1.5)
+- `max_steps`: Maximum trajectory length (default: 100)
+- `seed`: Random seed for reproducibility
+
+**Key Innovation**:
+- **MOGFN-PC**: Uses fixed `log_Z` parameter (scalar)
+- **HN-GFN**: Uses hypernetwork `Z(preference)` that outputs preference-dependent log partition function
+
+This allows the partition function to adapt based on the preference vector, improving multi-objective optimization.
+
+**Metrics applicable**: All metrics (Traditional, Trajectory, Spatial, Objective, Dynamics, Flow, Composite)
+
+**Reference**:
+Zhu et al. "Sample-efficient Multi-objective Molecular Optimization with GFlowNets" (NeurIPS 2023)
+- Paper: https://arxiv.org/abs/2302.04040
+- Code: https://github.com/violet-sto/HN-GFN
+
+---
+
 ## Future Baselines (TODOs)
 
-### 3. Single-Objective GFlowNet
+### 4. Single-Objective GFlowNet
 Train separate GFlowNet for each objective, combine Pareto fronts.
 
 **Advantage**: Tests if preference-conditioning is better than training per-objective.
-
-### 4. Hindsight GFlowNet (HN-GFN)
-From Jain et al. (2023), trains on hindsight preferences.
-
-**Advantage**: Direct comparison to the baseline from the original MOGFN-PC paper.
-
-### 5. Pareto-HN
-Variant of hindsight approach.
 
 ---
 
@@ -238,6 +309,16 @@ If using these baselines in research:
   title={Multi-Objective GFlowNets},
   author={Jain, Moksh and Raparthy, Sharath Chandra and Hern{\'a}ndez-Garc{\'i}a, Alex and others},
   booktitle={ICML},
+  year={2023}
+}
+```
+
+**HN-GFN** (Hypernetwork-GFlowNet):
+```bibtex
+@inproceedings{zhu2023sample,
+  title={Sample-efficient Multi-objective Molecular Optimization with {GF}low{N}ets},
+  author={Zhu, Yiheng and Wang, Kai and Wang, Zhongkai and Zhang, Zhe and Wang, Yue and Wu, Yining and others},
+  booktitle={NeurIPS},
   year={2023}
 }
 ```
