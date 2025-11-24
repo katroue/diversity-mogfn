@@ -433,6 +433,16 @@ class HN_GFN:
 
                 self.training_losses.append(total_loss.item())
 
+            # Memory management: Keep only recent trajectories (prevents OOM on long runs)
+            MAX_TRAJECTORIES_IN_MEMORY = 10000
+            if len(self.trajectories) > MAX_TRAJECTORIES_IN_MEMORY:
+                # Keep only the most recent trajectories
+                self.trajectories = self.trajectories[-MAX_TRAJECTORIES_IN_MEMORY:]
+                self.objectives_history = self.objectives_history[-MAX_TRAJECTORIES_IN_MEMORY:]
+                # Force garbage collection
+                import gc
+                gc.collect()
+
             # Log progress
             if (iteration + 1) % log_interval == 0 or iteration == 0:
                 num_terminal = len(self.objectives_history)

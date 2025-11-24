@@ -12,10 +12,9 @@ Usage:
     # Run all baselines on HyperGrid
     python scripts/baselines/run_baseline_comparison.py \
         --task sequences \
-        --algorithms random,mogfn_pc,nsga2,hngfn \
-        --seeds 42,153,264,375,486 \
+        --algorithms hngfn \
+        --seeds 42 \
         --output_dir results/baselines/sequences \
-        --eval_samples 1000
 
     # Run only Random and NSGA-II (quick test)
     python scripts/baselines/run_baseline_comparison.py \
@@ -34,10 +33,10 @@ Usage:
 
 Task-specific HN-GFN examples:
     # HyperGrid (4000 iterations, default architecture)
-    sudo nice -10 python scripts/baselines/run_baseline_comparison.py \
+    sudo nice -5 python scripts/baselines/run_baseline_comparison.py \
         --task sequences \
         --algorithms hngfn \
-        --seeds 42,153,264,375,486 \
+        --seeds 42 \
         --output_dir results/baselines/sequences
 
 """
@@ -920,12 +919,12 @@ Examples:
         # Aggregate results for this algorithm
         if algo_results:
             df = aggregate_results(algo_results)
-            df.to_csv(output_dir / f'{algorithm}_results.csv', index=False)
+            df.to_csv(output_dir / f'{algorithm}_results_temp_hngfn_153.csv', index=False)
 
     # Create overall summary
     if all_results:
         df_all = pd.DataFrame(all_results)
-        df_all.to_csv(output_dir / 'all_results.csv', index=False)
+        df_all.to_csv(output_dir / 'all_results_temp_hngfn_153.csv', index=False)
 
         # Summary by algorithm
         summary = df_all.groupby('algorithm').agg({
