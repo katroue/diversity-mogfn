@@ -234,7 +234,7 @@ def main():
     parser.add_argument(
         '--results_dir',
         type=str,
-        default='results/baselines/molecules',
+        default='results/baselines/sequences',
         help='Directory containing algorithm result files'
     )
     parser.add_argument(

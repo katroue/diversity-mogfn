@@ -7,7 +7,7 @@
   "tds": 0.541328257805803,
   "mpd": 0.9048584766582694,
   "mce": 0.3518870588745839,
-  "num_modes": 29,
+  "num_modes": 56,
   "pmd": 0.0,
   "pfs": 0.0009612649939026212,
   "pas": 0.46765727149853764,
@@ -22,6 +22,5 @@
   "exp_name": "trajectory_balance_seed153",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4,
-  "num_unique_solutions": 56
+  "num_layers": 4
 }

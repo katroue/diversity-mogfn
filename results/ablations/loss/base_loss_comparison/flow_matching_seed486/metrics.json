@@ -7,7 +7,7 @@
   "tds": 0.6296926667963432,
   "mpd": 0.801592584120128,
   "mce": 0.4405000544083918,
-  "num_modes": 23,
+  "num_modes": 51,
   "pmd": 0.0,
   "pfs": 0.002448269431768551,
   "pas": 0.053277146199172364,
@@ -22,6 +22,5 @@
   "exp_name": "flow_matching_seed486",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4,
-  "num_unique_solutions": 51
+  "num_layers": 4
 }

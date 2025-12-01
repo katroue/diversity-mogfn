@@ -25,7 +25,7 @@ import inspect
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from scripts.ablations.run_loss_ablation_group import generate_group_configs
+from scripts.ablations.loss.run_loss_ablation_group import generate_group_configs
 
 
 def test_config_generation():

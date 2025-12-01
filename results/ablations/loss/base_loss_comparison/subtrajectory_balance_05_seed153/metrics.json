@@ -7,7 +7,7 @@
   "tds": 0.560719136791661,
   "mpd": 0.9607736910195283,
   "mce": 0.42448209120255376,
-  "num_modes": 37,
+  "num_modes": 58,
   "pmd": 0.0,
   "pfs": 0.027255111816851692,
   "pas": 0.4850978897147827,
@@ -22,6 +22,5 @@
   "exp_name": "subtrajectory_balance_05_seed153",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4,
-  "num_unique_solutions": 58
+  "num_layers": 4
 }

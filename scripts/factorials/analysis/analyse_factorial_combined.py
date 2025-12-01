@@ -19,9 +19,11 @@ Tasks:
 Usage:
     # Basic usage (combines all four tasks):
     python scripts/factorials/analysis/analyse_factorial_combined.py \
-        --experiment sampling_loss \
-        --metric num_modes \
-        --output results/factorials/analysis/sampling_loss/combined_sampling_loss_num_modes.pdf
+        --experiment capacity_loss \
+        --metric mce \
+        --output results/factorials/analysis/sampling_loss/combined_capacity_loss_mce.pdf \
+        --heatmap
+
 
     # Specify which tasks to include:
     python scripts/factorials/analysis/analyse_factorial_combined.py \

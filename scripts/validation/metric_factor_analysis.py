@@ -35,13 +35,11 @@ sys.path.insert(0, str(project_root))
 
 # Metric categories
 METRIC_CATEGORIES = {
-    'traditional': ['hypervolume', 'spacing', 'spread'],
+    'traditional': ['hypervolume', 'spacing'],
     'trajectory': ['tds', 'mpd'],
-    'spatial': ['mce', 'num_unique_solutions', 'pmd'],
+    'spatial': ['mce', 'num_unique_solutions'],
     'objective': ['pfs', 'pas'],
-    'dynamics': ['rbd'],
-    'flow': ['fci'],
-    'composite': ['qds', 'der']
+    'composite': ['qds']
 }
 
 ALL_METRICS = [m for metrics in METRIC_CATEGORIES.values() for m in metrics]
@@ -142,7 +140,7 @@ def perform_pca(X: np.ndarray, metric_names: List[str]) -> Dict:
 
 
 def plot_scree_plot(explained_var: np.ndarray, cumulative_var: np.ndarray,
-                   output_path: Path, title: str = "Scree Plot"):
+                output_path: Path, title: str = "Scree Plot"):
     """
     Create scree plot showing explained variance.
 
@@ -160,11 +158,11 @@ def plot_scree_plot(explained_var: np.ndarray, cumulative_var: np.ndarray,
 
     # Plot cumulative variance
     ax.plot(components, cumulative_var * 100, 'ro-', linewidth=2,
-           markersize=6, label='Cumulative Variance')
+        markersize=6, label='Cumulative Variance')
 
     # Add 90% threshold line
     ax.axhline(y=90, color='green', linestyle='--', linewidth=2,
-              label='90% Threshold', alpha=0.7)
+            label='90% Threshold', alpha=0.7)
 
     ax.set_xlabel('Principal Component', fontsize=12, fontweight='bold')
     ax.set_ylabel('Explained Variance (%)', fontsize=12, fontweight='bold')
@@ -182,8 +180,8 @@ def plot_scree_plot(explained_var: np.ndarray, cumulative_var: np.ndarray,
 
 
 def plot_loadings_heatmap(loadings: np.ndarray, metric_names: List[str],
-                         n_components: int, output_path: Path,
-                         title: str = "PCA Loadings"):
+                        n_components: int, output_path: Path,
+                        title: str = "PCA Loadings"):
     """
     Create heatmap of PCA loadings.
 
@@ -271,7 +269,7 @@ def interpret_components(loadings: np.ndarray, metric_names: List[str],
 
         # Attempt interpretation based on metric categories
         high_loading_metrics = [metric_names[j] for j in range(len(metric_names))
-                              if abs(component_loadings[j]) > 0.4]
+                            if abs(component_loadings[j]) > 0.4]
 
         categories_involved = set()
         for metric in high_loading_metrics:
@@ -291,7 +289,7 @@ def interpret_components(loadings: np.ndarray, metric_names: List[str],
 
 
 def save_factor_analysis_results(pca_results: Dict, metric_names: List[str],
-                                 interpretations: pd.DataFrame, output_dir: Path):
+                                interpretations: pd.DataFrame, output_dir: Path):
     """
     Save factor analysis results to CSV.
 

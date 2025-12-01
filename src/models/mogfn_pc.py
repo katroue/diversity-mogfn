@@ -17,7 +17,7 @@ from abc import ABC, abstractmethod
 
 try:
     # Normal package import when used as part of the `models` package
-    from .gflownet import BaseGFlowNet, Trajectory, GFlowNetEnvironment, PolicyNetwork
+    from .gflownet import Trajectory, GFlowNetEnvironment
 except Exception:
     # Fallback for running this file directly (python src/models/mogfn_pc.py)
     # Add the `src` directory to sys.path so `models` becomes importable.
@@ -28,7 +28,7 @@ except Exception:
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
 
-    from models.gflownet import BaseGFlowNet, Trajectory, GFlowNetEnvironment, PolicyNetwork
+    from models.gflownet import Trajectory, GFlowNetEnvironment
 
 
 class PreferenceEncoder(nn.Module):
@@ -181,12 +181,12 @@ class ConditionalPolicyNetwork(nn.Module):
             return self.output_layer(features)
 
 
-class MOGFN_PC(BaseGFlowNet):
+class MOGFN_PC(nn.Module):
     """
     Multi-Objective GFlowNet with Preference Conditioning (MOGFN-PC).
-    
-    Extends BaseGFlowNet to handle multiple objectives by conditioning
-    the policy on preference vectors.
+
+    Implements preference-conditional GFlowNet for multi-objective optimization.
+    Based on Jain et al. "Multi-Objective GFlowNets" (ICML 2023).
     """
     
     def __init__(self,
@@ -436,10 +436,10 @@ class MOGFN_PC(BaseGFlowNet):
         return torch.stack(losses).mean()
     
     def detailed_balance_loss(self,
-                             trajectories: List[Trajectory],
-                             preferences: List[torch.Tensor],
-                             beta: float = 1.0,
-                             log_reward_clip: float = 10.0) -> torch.Tensor:
+                            trajectories: List[Trajectory],
+                            preferences: List[torch.Tensor],
+                            beta: float = 1.0,
+                            log_reward_clip: float = 10.0) -> torch.Tensor:
         """
         Compute detailed balance loss.
 
@@ -492,11 +492,11 @@ class MOGFN_PC(BaseGFlowNet):
         return torch.stack(losses).mean()
 
     def subtrajectory_balance_loss(self,
-                                   trajectories: List[Trajectory],
-                                   preferences: List[torch.Tensor],
-                                   beta: float = 1.0,
-                                   lambda_: float = 0.9,
-                                   log_reward_clip: float = 10.0) -> torch.Tensor:
+                                trajectories: List[Trajectory],
+                                preferences: List[torch.Tensor],
+                                beta: float = 1.0,
+                                lambda_: float = 0.9,
+                                log_reward_clip: float = 10.0) -> torch.Tensor:
         """
         Compute sub-trajectory balance loss.
 
@@ -611,10 +611,10 @@ class MOGFN_PC(BaseGFlowNet):
         return torch.stack(losses).mean()
 
     def flow_matching_loss(self,
-                          trajectories: List[Trajectory],
-                          preferences: List[torch.Tensor],
-                          beta: float = 1.0,
-                          log_reward_clip: float = 10.0) -> torch.Tensor:
+                        trajectories: List[Trajectory],
+                        preferences: List[torch.Tensor],
+                        beta: float = 1.0,
+                        log_reward_clip: float = 10.0) -> torch.Tensor:
         """
         Compute flow matching loss.
 
@@ -671,9 +671,9 @@ class MOGFN_PC(BaseGFlowNet):
         return torch.stack(losses).mean()
 
     def entropy_regularization(self,
-                              trajectories: List[Trajectory],
-                              preferences: List[torch.Tensor],
-                              beta_reg: float = 0.01) -> torch.Tensor:
+                            trajectories: List[Trajectory],
+                            preferences: List[torch.Tensor],
+                            beta_reg: float = 0.01) -> torch.Tensor:
         """
         Compute entropy regularization term.
 
@@ -704,9 +704,9 @@ class MOGFN_PC(BaseGFlowNet):
         return -beta_reg * torch.stack(entropies).mean()
 
     def kl_regularization(self,
-                         trajectories: List[Trajectory],
-                         preferences: List[torch.Tensor],
-                         beta_reg: float = 0.01) -> torch.Tensor:
+                        trajectories: List[Trajectory],
+                        preferences: List[torch.Tensor],
+                        beta_reg: float = 0.01) -> torch.Tensor:
         """
         Compute KL divergence regularization (between forward and backward policies).
 
@@ -756,7 +756,7 @@ class MOGFN_PC(BaseGFlowNet):
             preferences: List of preference vectors
             beta: Reward exponent
             loss_type: Loss type ('trajectory_balance', 'detailed_balance',
-                                  'subtrajectory_balance', 'flow_matching')
+                                'subtrajectory_balance', 'flow_matching')
             loss_params: Additional parameters for the loss function
             regularization: Regularization type ('none', 'entropy', 'kl')
             regularization_params: Parameters for regularization
@@ -1045,7 +1045,7 @@ class MOGFNTrainer:
             beta: Reward exponent for scalarization
             off_policy_ratio: Probability of sampling random actions (off-policy)
             loss_function: Loss function type ('trajectory_balance', 'detailed_balance',
-                                             'subtrajectory_balance', 'flow_matching')
+                                            'subtrajectory_balance', 'flow_matching')
             loss_params: Additional parameters for the loss function
             regularization: Regularization type ('none', 'entropy', 'kl')
             regularization_params: Parameters for regularization
@@ -1296,8 +1296,8 @@ class MOGFNTrainer:
 
             if i % log_every == 0:
                 print(f"Iteration {i}/{num_iterations} - Total Loss: {metrics['loss']:.4f}, "
-                      f"Base Loss: {metrics['base_loss']:.4f}, Reg: {metrics['reg_term']:.4f}, "
-                      f"log Z: {metrics['log_Z']:.4f}")
+                    f"Base Loss: {metrics['base_loss']:.4f}, Reg: {metrics['reg_term']:.4f}, "
+                    f"log Z: {metrics['log_Z']:.4f}")
 
                 for key, value in metrics.items():
                     if key in history:

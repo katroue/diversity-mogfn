@@ -37,12 +37,10 @@ sys.path.insert(0, str(project_root))
 
 # Define metric categories from Phase 4 strategy
 METRIC_CATEGORIES = {
-    'traditional': ['hypervolume', 'spacing', 'spread'],
-    'trajectory': ['tds', 'mpd'],
-    'spatial': ['mce', 'num_unique_solutions', 'pmd'],
+    'traditional': ['hypervolume', 'spacing'],
+    'trajectory': ['tds'],
+    'spatial': ['mce', 'num_modes'],
     'objective': ['pfs', 'pas'],
-    'dynamics': ['rbd'],
-    'flow': ['fci'],
     'composite': ['qds', 'der']
 }
 
