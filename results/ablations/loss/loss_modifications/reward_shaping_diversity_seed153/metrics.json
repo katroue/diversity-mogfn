@@ -9,7 +9,7 @@
   "mce": 0.5045848131852385,
   "num_modes": 42,
   "pmd": 0.0,
-  "pfs": 0.0019572606306727603,
+  "pfs": 0.11461240549257383,
   "pas": 0.4935907543383217,
   "rbd": 0.561459701914258,
   "fci": 0.43296370967741926,
@@ -22,5 +22,11 @@
   "exp_name": "reward_shaping_diversity_seed153",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:15:14.061154",
+    "old_value": 0.0019572606306727603,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

@@ -38,7 +38,7 @@ METRIC_CATEGORIES = {
     'traditional': ['hypervolume', 'spacing'],
     'trajectory': ['tds', 'mpd'],
     'spatial': ['mce', 'num_unique_solutions'],
-    'objective': ['pfs', 'pas'],
+    'objective': ['pfs'],
     'composite': ['qds']
 }
 

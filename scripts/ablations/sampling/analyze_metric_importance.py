@@ -26,8 +26,8 @@ EXPERIMENT_GROUPS = {
 # Metrics to analyze (excluding MCE as requested)
 ALL_METRICS = [
     'hypervolume', 'spacing', 'spread', 'avg_pairwise_distance',
-    'tds', 'mpd', 'num_modes', 'pmd', 'pfs', 'pas',
-    'rbd', 'fci', 'qds', 'der'
+    'tds', 'mpd', 'num_modes', 'pmd', 'pfs',
+    'rbd', 'fci', 'qds'
 ]
 
 

@@ -9,7 +9,7 @@
   "mce": 0.472815490165649,
   "num_modes": 64,
   "pmd": 0.0,
-  "pfs": 0.0,
+  "pfs": 0.9371070236808677,
   "pas": 0.22543739858216544,
   "rbd": 0.5456313131313131,
   "fci": 0.3860192147034254,
@@ -20,5 +20,11 @@
   "final_loss": 4.150845527648926,
   "seed": 375,
   "exp_name": "small_high_seed375",
-  "condition_name": "small_high"
+  "condition_name": "small_high",
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-02T00:00:50.348765",
+    "old_value": 0.0,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

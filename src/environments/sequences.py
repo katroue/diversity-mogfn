@@ -2,8 +2,7 @@
 DNA Sequence Generation Environment for Multi-Objective GFlowNets.
 
 This environment generates DNA sequences character by character, with multiple
-biological objectives including GC content, motif presence, entropy, and
-homopolymer penalties.
+biological objectives.
 
 Based on the Multi-Objective GFlowNets paper (Jain et al., ICML 2023).
 """
@@ -240,7 +239,7 @@ class DNASequence(MultiObjectiveEnvironment):
 
         Returns:
             score: Negative free energy (higher is better/more stable)
-                   Normalized to ~[0, 1] range for compatibility
+                Normalized to ~[0, 1] range for compatibility
         """
         if len(sequence) == 0:
             return 0.0

@@ -46,18 +46,18 @@ def get_all_experiment_dirs(results_dir: Path) -> List[Path]:
 def load_experiment_data(exp_dir: Path) -> Dict:
     """Load metrics and config data from an experiment directory."""
     metrics_file = exp_dir / 'metrics.json'
-    config_file = exp_dir / 'config.json'
+    #config_file = exp_dir / 'config.json'
 
     if not metrics_file.exists():
         raise FileNotFoundError(f"metrics.json not found in {exp_dir}")
-    if not config_file.exists():
-        raise FileNotFoundError(f"config.json not found in {exp_dir}")
+    #if not config_file.exists():
+    #    raise FileNotFoundError(f"config.json not found in {exp_dir}")
 
     with open(metrics_file, 'r') as f:
         metrics = json.load(f)
 
-    with open(config_file, 'r') as f:
-        config = json.load(f)
+    #with open(config_file, 'r') as f:
+    #    config = json.load(f)
 
     # Combine data from both files
     # The CSV expects these columns in this order:
@@ -88,10 +88,14 @@ def load_experiment_data(exp_dir: Path) -> Dict:
         'final_loss': metrics['final_loss'],
         'seed': metrics['seed'],
         'exp_name': metrics['exp_name'],
-        'condition_name': metrics['condition_name'],
         # Config data
-        'capacity_level': config['capacity_level'],
-        'temperature_level': config['temperature_level'],
+        'capacity': metrics['capacity'],
+        'hidden_dim': metrics['hidden_dim'],
+        'num_layers': metrics['num_layers'],
+        'conditioning': metrics['conditioning'],
+        'alpha': metrics['alpha'],
+        'preference_sampling': metrics['preference_sampling'],
+        'loss': metrics['loss'],
     }
 
     return row_data
@@ -108,7 +112,7 @@ def append_to_csv(csv_path: Path, rows: List[Dict]):
         'hypervolume', 'r2_indicator', 'avg_pairwise_distance', 'spacing', 'spread',
         'tds', 'mpd', 'mce', 'num_modes', 'pmd', 'pfs', 'pas', 'rbd', 'fci', 'qds', 'der',
         'num_parameters', 'training_time', 'final_loss', 'seed', 'exp_name',
-        'condition_name', 'capacity_level','temperature_level'
+        'capacity', 'hidden_dim','num_layers', 'conditioning', 'alpha', 'preference_sampling', 'loss'
     ]
 
     # Append to CSV
@@ -122,8 +126,8 @@ def main():
     # Set up paths
     script_dir = Path(__file__).parent
     project_root = script_dir.parent.parent.parent
-    results_dir = project_root / 'results' / 'factorials' / 'sequences_capacity_sampling'
-    csv_path = results_dir / 'results.csv'
+    results_dir = project_root / 'results' / 'ablations' / 'capacity'
+    csv_path = results_dir / 'all_results.csv'
 
     print(f"Results directory: {results_dir}")
     print(f"CSV file: {csv_path}")

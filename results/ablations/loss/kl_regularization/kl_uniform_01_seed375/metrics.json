@@ -9,7 +9,7 @@
   "mce": 0.40955423340691594,
   "num_modes": 39,
   "pmd": 0.0,
-  "pfs": 0.0010119200322605893,
+  "pfs": 0.11050044557211455,
   "pas": 0.481576005435381,
   "rbd": 0.49826560420500654,
   "fci": 0.4160140098263365,
@@ -22,5 +22,11 @@
   "exp_name": "kl_uniform_01_seed375",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:14:58.195860",
+    "old_value": 0.0010119200322605893,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

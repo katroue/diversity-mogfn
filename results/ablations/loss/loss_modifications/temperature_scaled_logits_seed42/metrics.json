@@ -9,7 +9,7 @@
   "mce": 0.5120338253012697,
   "num_modes": 50,
   "pmd": 0.0,
-  "pfs": 0.015479372544699627,
+  "pfs": 0.05934197511710695,
   "pas": 0.493400552077175,
   "rbd": 0.5703456223910772,
   "fci": 0.43828781512605053,
@@ -22,5 +22,11 @@
   "exp_name": "temperature_scaled_logits_seed42",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:15:31.425772",
+    "old_value": 0.015479372544699627,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

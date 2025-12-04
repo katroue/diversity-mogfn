@@ -9,7 +9,7 @@
   "mce": 0.08246641029560776,
   "num_modes": 3,
   "pmd": 0.0,
-  "pfs": 0.0,
+  "pfs": 0.026564251639598982,
   "pas": 0.11093070635751776,
   "rbd": 0.4296245791245832,
   "fci": 0.4537385129490392,
@@ -22,5 +22,11 @@
   "exp_name": "batch_64_seed123",
   "hidden_dim": 128,
   "num_layers": 4,
-  "conditioning": "concat"
+  "conditioning": "concat",
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:16:49.119482",
+    "old_value": 0.0,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

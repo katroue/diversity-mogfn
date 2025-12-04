@@ -9,7 +9,7 @@
   "mce": 0.5607475432051972,
   "num_modes": 78,
   "pmd": 0.0,
-  "pfs": 0.0,
+  "pfs": 0.5419421033415859,
   "pas": 0.27066694907932193,
   "rbd": 0.6634848484848485,
   "fci": 0.38457761131918455,
@@ -20,5 +20,11 @@
   "final_loss": 0.33309227228164673,
   "seed": 486,
   "exp_name": "low_subtb_seed486",
-  "condition_name": "low_subtb"
+  "condition_name": "low_subtb",
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-02T00:02:13.744448",
+    "old_value": 0.0,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

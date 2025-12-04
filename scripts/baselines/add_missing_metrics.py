@@ -207,7 +207,7 @@ def regenerate_summary_by_algorithm(base_dir: Path, df: pd.DataFrame):
         'hypervolume', 'r2_indicator', 'avg_pairwise_distance', 'spacing', 'spread',
         'gd', 'igd',  # Newly added metrics
         'mce', 'pmd', 'pfs', 'num_unique_solutions',
-        'pas', 'qds', 'der',
+        'qds',
         'training_time'
     ]
 

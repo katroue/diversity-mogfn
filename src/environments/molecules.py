@@ -6,7 +6,7 @@ Based on the environment described in:
 
 The molecule generation task involves constructing molecules by adding
 molecular fragments iteratively. Multiple objectives are defined as
-molecular properties (QED, SA score, logP, etc.).
+molecular properties (QED, SA score, logP).
 """
 
 import torch
@@ -77,7 +77,7 @@ class MoleculeFragments(MultiObjectiveEnvironment):
             max_fragments: Maximum number of fragments in a molecule
             num_fragments_library: Number of fragments in the library to use
             objective_properties: List of properties to use as objectives
-                                Options: 'qed', 'sa', 'logp', 'mw'
+                                Options: 'qed', 'sa', 'logp'
                                 If None, uses ['qed', 'sa']
             use_rdkit: Whether to use RDKit for property calculation
                     If False, uses simple heuristics (for testing without RDKit)

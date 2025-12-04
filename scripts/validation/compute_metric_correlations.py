@@ -37,11 +37,11 @@ sys.path.insert(0, str(project_root))
 
 # Define metric categories from Phase 4 strategy
 METRIC_CATEGORIES = {
-    'traditional': ['hypervolume', 'spacing'],
+    'traditional': ['hypervolume'],
     'trajectory': ['tds'],
     'spatial': ['mce', 'num_modes'],
-    'objective': ['pfs', 'pas'],
-    'composite': ['qds', 'der']
+    'objective': ['pfs'],
+    'composite': ['qds']
 }
 
 # Flatten to get all metrics

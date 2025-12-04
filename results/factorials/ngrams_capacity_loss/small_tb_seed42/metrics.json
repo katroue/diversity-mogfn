@@ -9,7 +9,7 @@
   "mce": 0.608981181539712,
   "num_modes": 95,
   "pmd": 0.0,
-  "pfs": 0.0,
+  "pfs": 0.6994541272708205,
   "pas": 0.30896706189586387,
   "rbd": 0.6307575757575757,
   "fci": 0.37897058823529406,
@@ -20,5 +20,11 @@
   "final_loss": 5.209602355957031,
   "seed": 42,
   "exp_name": "small_tb_seed42",
-  "condition_name": "small_tb"
+  "condition_name": "small_tb",
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T23:59:42.668138",
+    "old_value": 0.0,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

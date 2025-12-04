@@ -191,8 +191,8 @@ def create_readable_summary(summary: pd.DataFrame, output_dir: Path):
     # Define metric categories
     common_metrics = [
         'hypervolume', 'r2_indicator', 'avg_pairwise_distance', 'spacing', 'spread',
-        'mce', 'num_modes', 'pmd', 'pfs', 'num_unique_solutions', 'pas',
-        'qds', 'der', 'training_time'
+        'mce', 'num_modes', 'pmd', 'pfs', 'num_unique_solutions',
+        'qds', 'training_time'
     ]
 
     gfn_metrics = ['tds', 'mpd', 'rbd', 'fci', 'final_loss']

@@ -9,7 +9,7 @@
   "mce": 0.11085835929755256,
   "num_modes": 2,
   "pmd": 0.0,
-  "pfs": 2.416249809441602e-13,
+  "pfs": 0.009830883295944788,
   "pas": 0.10574215812646294,
   "rbd": 0.38470081770082193,
   "fci": 0.4564040771175726,
@@ -22,5 +22,11 @@
   "exp_name": "pref_dirichlet_high_seed1011",
   "hidden_dim": 128,
   "num_layers": 4,
-  "conditioning": "concat"
+  "conditioning": "concat",
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:19:08.358120",
+    "old_value": 2.416249809441602e-13,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

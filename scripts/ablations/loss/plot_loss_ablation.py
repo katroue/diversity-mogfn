@@ -8,12 +8,12 @@ Uses violin plots (no bar charts) for distribution visualization.
 Usage:
     python scripts/ablations/loss/plot_loss_ablation.py \
         --experiment_group base_loss_comparison \
-        --metrics mce pas qds der
+        --metrics mce pfs qds hypervolume
 
     python scripts/ablations/loss/plot_loss_ablation.py \
-        --experiment_group entropy_regularization \
-        --metrics mce hypervolume qds fci \
-        --output results/ablations/loss/figures/entropy_4metrics.pdf
+        --experiment_group base_loss_comparison \
+        --metrics mce hypervolume qds pfs \
+        --output results/ablations/loss/figures/base_loss_4metrics.pdf
 """
 
 import argparse
@@ -27,22 +27,22 @@ import seaborn as sns
 EXPERIMENT_GROUPS = {
     'base_loss_comparison': {
         'experiments': [
-            'trajectory_balance',
+            'flow_matching',
             'detailed_balance',
+            'trajectory_balance',
             'subtrajectory_balance_05',
             'subtrajectory_balance_09',
             'subtrajectory_balance_095',
-            'flow_matching'
         ],
         'title': 'Base Loss Function Comparison',
         'xlabel': 'Loss Function',
         'display_names': {
-            'trajectory_balance': 'TB',
+            'flow_matching': 'FM',
             'detailed_balance': 'DB',
+            'trajectory_balance': 'TB',
             'subtrajectory_balance_05': 'SubTB(0.5)',
             'subtrajectory_balance_09': 'SubTB(0.9)',
             'subtrajectory_balance_095': 'SubTB(0.95)',
-            'flow_matching': 'FM'
         }
     },
     'entropy_regularization': {
@@ -434,7 +434,7 @@ Examples:
   # Base loss function comparison
   python scripts/ablations/loss/plot_loss_ablation.py \\
       --experiment_group base_loss_comparison \\
-      --metrics mce pas qds der
+      --metrics mce pfs qds hypervolume
 
   # Entropy regularization effects
   python scripts/ablations/loss/plot_loss_ablation.py \\
@@ -445,7 +445,7 @@ Examples:
   # KL regularization
   python scripts/ablations/loss/plot_loss_ablation.py \\
       -g kl_regularization \\
-      -m mce pas qds der \\
+      -m mce pfs qds hypervolume \\
       -o results/ablations/loss/figures/kl_4metrics.pdf
 
 Available experiment groups:
@@ -458,16 +458,16 @@ Common metrics:
   - hypervolume, spacing, spread (traditional MO metrics)
   - tds, mpd (trajectory diversity)
   - mce, pmd (spatial diversity)
-  - pas, pfs (preference-aligned metrics)
-  - qds, der (composite quality-diversity)
+  - pfs (Pareto front smoothness)
+  - qds (quality-diversity score)
   - fci (flow concentration)
   - rbd (replay buffer diversity)
 
 Recommended metric combinations:
-  base_loss_comparison:     mce pas qds der
+  base_loss_comparison:     mce pfs qds hypervolume
   entropy_regularization:   mce hypervolume qds fci
-  kl_regularization:        mce pas qds der
-  loss_modifications:       mce qds der hypervolume
+  kl_regularization:        mce pfs qds hypervolume
+  loss_modifications:       mce qds pfs hypervolume
         """
     )
 

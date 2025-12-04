@@ -49,10 +49,10 @@ from src.environments.hypergrid import HyperGrid
 from src.metrics.traditional import compute_all_traditional_metrics
 from src.metrics.trajectory import trajectory_diversity_score, multi_path_diversity
 from src.metrics.spatial import mode_coverage_entropy, pairwise_minimum_distance
-from src.metrics.objective import preference_aligned_spread, pareto_front_smoothness
+from src.metrics.objective import pareto_front_smoothness
 from src.metrics.dynamics import replay_buffer_diversity
 from src.metrics.flow import flow_concentration_index
-from src.metrics.composite import quality_diversity_score, diversity_efficiency_ratio
+from src.metrics.composite import quality_diversity_score
 from src.utils.tensor_utils import to_numpy, to_hashable
 
 
@@ -144,19 +144,19 @@ def run_single_experiment(exp_config: dict,
     
     # Create trainer
     trainer = MOGFNTrainer(
-      mogfn=mogfn,
-      env=env,
-      preference_sampler=pref_sampler,
-      optimizer=optimizer,
-      beta=config.get('beta', 1.0),
-      off_policy_ratio=config.get('off_policy_ratio', 0.0),
-      loss_function=config.get('base_loss_type', 'trajectory_balance'),
-      loss_params=config.get('base_loss_params', {}),
-      regularization=config.get('regularization_type', 'none'),
-      regularization_params=config.get('regularization_params', {}),
-      modifications=config.get('modifications_type', 'none'),
-      modifications_params=config.get('modifications_params', {}),
-      gradient_clip=config.get('gradient_clip', 10.0)
+        mogfn=mogfn,
+        env=env,
+        preference_sampler=pref_sampler,
+        optimizer=optimizer,
+        beta=config.get('beta', 1.0),
+        off_policy_ratio=config.get('off_policy_ratio', 0.0),
+        loss_function=config.get('base_loss_type', 'trajectory_balance'),
+        loss_params=config.get('base_loss_params', {}),
+        regularization=config.get('regularization_type', 'none'),
+        regularization_params=config.get('regularization_params', {}),
+        modifications=config.get('modifications_type', 'none'),
+        modifications_params=config.get('modifications_params', {}),
+        gradient_clip=config.get('gradient_clip', 10.0)
     )
     
     # Training
@@ -208,31 +208,11 @@ def run_single_experiment(exp_config: dict,
     print("  Computing spatial metrics...")
     metrics['mce'], metrics['num_modes'] = mode_coverage_entropy(objectives)
     metrics['pmd'] = pairwise_minimum_distance(objectives)
-    metrics['pfs'] = pareto_front_smoothness(objectives)
-    
+
     # Objective metrics
     print("  Computing objective metrics...")
-    # Compute a simplified version of Preference-Aligned Spread
-    # Instead of the complex sampling, we use the already-evaluated objectives
-    # and check how spread out they are for different preference groups
-    try:
-        # Simple alternative: measure spread within preference-conditioned groups
-        # Group objectives by similar preferences
-        from scipy.spatial.distance import pdist
-        
-        if len(objectives) > 10:  # Need enough samples
-            # Simple PAS approximation: average pairwise distance in objective space
-            # This is a proxy for preference-aligned spread
-            dists = pdist(objectives, metric='euclidean')
-            pas_approx = float(np.mean(dists))
-            metrics['pas'] = pas_approx
-            print(f"  ✓ PAS (simplified): {pas_approx:.4f}")
-        else:
-            metrics['pas'] = 0.0
-            print(f"  Note: Not enough samples for PAS")
-    except Exception as e:
-        print(f"  Warning: Could not compute PAS: {e}")
-        metrics['pas'] = 0.0
+    metrics['pfs'] = pareto_front_smoothness(objectives)
+    print(f"  ✓ PFS: {metrics['pfs']:.6f}")
     
     # Dynamics metrics
     print("  Computing dynamics metrics...")
@@ -252,18 +232,11 @@ def run_single_experiment(exp_config: dict,
     # Composite metrics
     print("  Computing composite metrics...")
     qds_results = quality_diversity_score(
-        objectives, 
-        reference_point, 
+        objectives,
+        reference_point,
         alpha=0.5
     )
     metrics['qds'] = qds_results['qds']
-    
-    der_results = diversity_efficiency_ratio(
-        objectives,
-        training_time=training_time,
-        num_parameters=num_params
-    )
-    metrics['der'] = der_results['der']
     
     # Add metadata
     metrics['num_parameters'] = num_params
@@ -310,7 +283,7 @@ def run_single_experiment(exp_config: dict,
     print(f"  Hypervolume: {metrics['hypervolume']:.4f}")
     print(f"  TDS: {metrics['tds']:.4f}")
     print(f"  MCE: {metrics['mce']:.4f}")
-    print(f"  DER: {metrics['der']:.6f}")
+    print(f"  PFS: {metrics['pfs']:.6f}")
     
     return metrics
 

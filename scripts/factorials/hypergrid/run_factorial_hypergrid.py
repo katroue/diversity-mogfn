@@ -14,15 +14,15 @@ Usage:
 
     # Dry run to preview
     python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
-      --config configs/factorials/capacity_sampling_2way.yaml \
-      --output_dir results/factorials/capacity_sampling \
-      --resume
+        --config configs/factorials/capacity_sampling_2way.yaml \
+        --output_dir results/factorials/capacity_sampling \
+        --resume
 
     # Resume interrupted experiment
     python scripts/factorials/hypergrid/run_factorial_hypergrid.py \
-      --config configs/factorials/capacity_sampling_2way.yaml \
-      --output_dir results/factorials/capacity_sampling \
-      --resume
+        --config configs/factorials/capacity_sampling_2way.yaml \
+        --output_dir results/factorials/capacity_sampling \
+        --resume
 
     # Run specific conditions only
     python scripts/factorials/hypergrid/run_factorial_hypergrid.py \

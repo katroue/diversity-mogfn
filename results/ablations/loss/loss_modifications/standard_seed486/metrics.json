@@ -9,7 +9,7 @@
   "mce": 0.5343242961828395,
   "num_modes": 49,
   "pmd": 0.0,
-  "pfs": 0.0012746160226094789,
+  "pfs": 0.09421549828774303,
   "pas": 0.4867241348122742,
   "rbd": 0.57585552326462,
   "fci": 0.4270794710171797,
@@ -22,5 +22,11 @@
   "exp_name": "standard_seed486",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:15:26.125209",
+    "old_value": 0.0012746160226094789,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

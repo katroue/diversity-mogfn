@@ -9,7 +9,7 @@
   "mce": 0.12273738428259306,
   "num_modes": 3,
   "pmd": 0.0,
-  "pfs": 4.0247898508460065e-15,
+  "pfs": 0.006187019524940938,
   "pas": 0.11619209497838912,
   "rbd": 0.3596719576719625,
   "fci": 0.5090027561510453,
@@ -26,5 +26,11 @@
   "conditioning": "film",
   "alpha": 1.5,
   "preference_sampling": "dirichlet",
-  "loss": "trajectory_balance"
+  "loss": "trajectory_balance",
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:11:35.474461",
+    "old_value": 4.0247898508460065e-15,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

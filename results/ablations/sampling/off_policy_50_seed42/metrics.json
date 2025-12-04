@@ -9,7 +9,7 @@
   "mce": 0.5792937081410601,
   "num_modes": 46,
   "pmd": 0.0,
-  "pfs": 0.0022757893369938133,
+  "pfs": 0.12905462272517523,
   "pas": 0.21793428928100378,
   "rbd": 0.3917171717171764,
   "fci": 0.42267013790017494,
@@ -22,5 +22,11 @@
   "exp_name": "off_policy_50_seed42",
   "hidden_dim": 128,
   "num_layers": 4,
-  "conditioning": "concat"
+  "conditioning": "concat",
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:18:31.303431",
+    "old_value": 0.0022757893369938133,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

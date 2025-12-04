@@ -9,7 +9,7 @@
   "mce": 0.49550806274085346,
   "num_modes": 46,
   "pmd": 0.0,
-  "pfs": 0.0009235603647080087,
+  "pfs": 0.08979836877217665,
   "pas": 0.5011258369913646,
   "rbd": 0.5937556265283626,
   "fci": 0.4509448368009161,
@@ -22,5 +22,11 @@
   "exp_name": "entropy_001_seed42",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:14:16.536218",
+    "old_value": 0.0009235603647080087,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

@@ -9,7 +9,7 @@
   "mce": 0.494413164524198,
   "num_modes": 63,
   "pmd": 0.0,
-  "pfs": 0.000952496238958997,
+  "pfs": 0.11898464117566052,
   "pas": 0.49043099235431586,
   "rbd": 0.5515494326100401,
   "fci": 0.4341822297679683,
@@ -22,5 +22,11 @@
   "exp_name": "subtrajectory_balance_095_seed486",
   "capacity": "medium",
   "hidden_dim": 128,
-  "num_layers": 4
+  "num_layers": 4,
+  "pfs_metadata": {
+    "recalculated": true,
+    "recalculation_date": "2025-12-01T16:13:49.293469",
+    "old_value": 0.000952496238958997,
+    "method": "extended_pfs_with_manifold_projection"
+  }
 }

@@ -68,7 +68,7 @@ from src.metrics.spatial import mode_coverage_entropy, pairwise_minimum_distance
 from src.metrics.objective import pareto_front_smoothness
 from src.metrics.dynamics import replay_buffer_diversity
 from src.metrics.flow import flow_concentration_index
-from src.metrics.composite import quality_diversity_score, diversity_efficiency_ratio
+from src.metrics.composite import quality_diversity_score
 from src.utils.tensor_utils import to_numpy, to_hashable
 from scipy.spatial.distance import pdist
 import torch
@@ -162,30 +162,14 @@ def compute_baseline_metrics(
         metrics['pfs'] = 0.0
         metrics['num_unique_solutions'] = len(objectives)
 
-    # Simplified PAS (preference-aligned spread approximation)
-    if len(objectives_for_metrics) > 10:
-        logger.info(f"  Computing PAS (pairwise distances)...")
-        dists = pdist(objectives_for_metrics, metric='euclidean')
-        metrics['pas'] = float(np.mean(dists))
-        logger.info("  PAS computed")
-    else:
-        metrics['pas'] = 0.0
-
     # Composite metrics
-    logger.info("  Computing composite metrics (QDS, DER)...")
+    logger.info("  Computing composite metrics (QDS)...")
     qds_results = quality_diversity_score(
         objectives_for_metrics,
         reference_point,
         alpha=0.5
     )
     metrics['qds'] = qds_results['qds']
-
-    der_results = diversity_efficiency_ratio(
-        objectives_for_metrics,
-        training_time=training_time,
-        num_parameters=num_params
-    )
-    metrics['der'] = der_results['der']
 
     # Metadata
     metrics['num_parameters'] = num_params
@@ -456,14 +440,6 @@ def run_mogfn_pc_baseline(
     metrics['pfs'] = pareto_front_smoothness(objectives_for_metrics)
     metrics['num_unique_solutions'] = len(np.unique(objectives, axis=0))
 
-    # Objective metrics (simplified PAS)
-    logger.info("  Computing PAS...")
-    if len(objectives_for_metrics) > 10:
-        dists = pdist(objectives_for_metrics, metric='euclidean')
-        metrics['pas'] = float(np.mean(dists))
-    else:
-        metrics['pas'] = 0.0
-
     # Dynamics metrics
     logger.info("  Computing dynamics metrics...")
     metrics['rbd'] = replay_buffer_diversity(trajectories, metric='trajectory_distance')
@@ -481,13 +457,6 @@ def run_mogfn_pc_baseline(
     logger.info("  Computing composite metrics...")
     qds_results = quality_diversity_score(objectives_for_metrics, reference_point, alpha=0.5)
     metrics['qds'] = qds_results['qds']
-
-    der_results = diversity_efficiency_ratio(
-        objectives_for_metrics,
-        training_time=training_time,
-        num_parameters=num_params
-    )
-    metrics['der'] = der_results['der']
 
     # Metadata
     metrics['num_parameters'] = num_params
@@ -676,13 +645,6 @@ def run_hngfn_baseline(
     logger.info("  Computing composite metrics...")
     qds_results = quality_diversity_score(objectives_for_metrics, reference_point, alpha=0.5)
     metrics['qds'] = qds_results['qds']
-
-    der_results = diversity_efficiency_ratio(
-        objectives_for_metrics,
-        training_time=training_time,
-        num_parameters=num_params
-    )
-    metrics['der'] = der_results['der']
 
     # Metadata
     metrics['num_parameters'] = num_params

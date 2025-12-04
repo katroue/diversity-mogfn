@@ -8,11 +8,11 @@ Uses violin plots (no bar charts) for distribution visualization.
 Usage:
     python scripts/ablations/sampling/plot_experiment_type_sampling_ablation.py \
         --experiment_type policy_type \
-        --metrics mce pas der qds
+        --metrics mce pfs qds hypervolume
 
     python scripts/ablations/sampling/plot_experiment_type_sampling_ablation.py \
         --experiment_type policy_type \
-        --metrics mce der pas spread \
+        --metrics mce pfs qds hypervolume \
         --output results/ablations/sampling/report/policy_4metrics.pdf
 """
 
@@ -280,12 +280,12 @@ Examples:
   # Plot temperature experiments with 4 metrics
   python scripts/ablations/sampling/plot_experiment_type_sampling_ablation.py \\
       --experiment_type temperature \\
-      --metrics mce pas der qds
+      --metrics mce pfs qds hypervolume
 
   # Plot policy types with 4 metrics, save to file
   python scripts/ablations/sampling/plot_experiment_type_sampling_ablation.py \\
       --experiment_type policy_type \\
-      --metrics mce der pas spread \\
+      --metrics mce pfs qds hypervolume \\
       --output results/ablations/sampling/report/policy_4metrics.pdf
 
   # Plot sampling strategies with recommended metrics
@@ -306,19 +306,19 @@ Common metrics (provide any 4):
   - hypervolume, spacing, spread (traditional MO metrics)
   - tds, mpd (trajectory diversity)
   - mce, pmd (spatial diversity)
-  - pas, pfs (preference-aligned metrics)
-  - qds, der (composite quality-diversity)
+  - pfs (Pareto front smoothness)
+  - qds (quality-diversity score)
   - fci (flow concentration)
   - rbd (replay buffer diversity)
   - avg_pairwise_distance (spatial coverage)
 
 Recommended combinations by experiment type:
-  temperature:          mce pas mpd der
+  temperature:          mce pfs qds hypervolume
   sampling_strategy:    mce qds hypervolume spacing
-  policy_type:          mce der pas spread
-  preference_diversity: mce pfs spacing fci
-  batch_size:           mce der pas pfs
-  combined:             mce der pas qds
+  policy_type:          mce pfs qds hypervolume
+  preference_diversity: mce pfs qds spacing
+  batch_size:           mce pfs qds hypervolume
+  combined:             mce pfs qds hypervolume
         """
     )
 
