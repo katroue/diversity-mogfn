@@ -198,11 +198,9 @@ def run_single_experiment(exp_config: dict,
         from src.metrics.traditional import compute_all_traditional_metrics
         from src.metrics.trajectory import trajectory_diversity_score, multi_path_diversity
         from src.metrics.spatial import mode_coverage_entropy, pairwise_minimum_distance
-        from src.metrics.objective import preference_aligned_spread, pareto_front_smoothness
-        from src.metrics.dynamics import replay_buffer_diversity
-        from src.metrics.flow import flow_concentration_index
+        from src.metrics.objective import pareto_front_smoothness
         from src.metrics.composite import quality_diversity_score, diversity_efficiency_ratio
-        from src.utils.tensor_utils import to_numpy, to_hashable
+        from src.utils.tensor_utils import to_numpy
     except ImportError as e:
         print(f"Warning: Could not import training modules: {e}")
         print("Running in placeholder mode (for testing script logic)")
@@ -329,9 +327,11 @@ def run_single_experiment(exp_config: dict,
     # Spatial metrics
     metrics['mce'], metrics['num_modes'] = mode_coverage_entropy(objectives)
     metrics['pmd'] = pairwise_minimum_distance(objectives)
+
+    # Objective metrics
     metrics['pfs'] = pareto_front_smoothness(objectives)
 
-    # Objective metrics (simplified PAS)
+    # Objective metrics (simplified PAS - average pairwise distance)
     try:
         from scipy.spatial.distance import pdist
         if len(objectives) > 10:
@@ -341,17 +341,6 @@ def run_single_experiment(exp_config: dict,
             metrics['pas'] = 0.0
     except Exception:
         metrics['pas'] = 0.0
-
-    # Dynamics metrics
-    metrics['rbd'] = replay_buffer_diversity(trajectories, metric='trajectory_distance')
-
-    # Flow metrics
-    state_visits = {}
-    for traj in trajectories:
-        for state in traj.states:
-            state_key = to_hashable(state)
-            state_visits[state_key] = state_visits.get(state_key, 0) + 1
-    metrics['fci'] = flow_concentration_index(state_visits)
 
     # Composite metrics
     qds_results = quality_diversity_score(
