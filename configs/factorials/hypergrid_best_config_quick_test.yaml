@@ -1,0 +1,107 @@
+conditions:
+- loss: subtb_entropy
+  name: large_subtb_entropy
+experiment_name: hypergrid_best_config
+factors:
+  loss:
+    description: GFlowNet training objective
+    levels:
+      subtb_entropy:
+        label: "SubTB(\u03BB=0.9) + Entropy"
+        loss_function: subtrajectory_balance
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: entropy
+        regularization_params:
+          beta: 0.01
+fixed:
+  activation: relu
+  base_seed: 42
+  batch_size: 128
+  conditioning: concat
+  dirichlet_alpha: 1.5
+  eval_every: 50
+  eval_samples: 500
+  final_eval_samples: 1000
+  gradient_clip: 10.0
+  grid_size:
+  - 32
+  - 32
+  hidden_dim: 128
+  learning_rate: 0.001
+  max_iterations: 250
+  num_layers: 4
+  num_preferences_per_batch: 16
+  num_seeds: 1
+  optimizer: adam
+  preference_distribution: dirichlet
+  sampling_strategy: categorical
+  task: hypergrid
+  temperature: 5.0
+metrics:
+  primary:
+  - quality_diversity_score
+  - hypervolume
+  - mode_coverage_entropy
+  - trajectory_diversity_score
+  secondary:
+  - preference_aligned_spread
+  - pareto_front_smoothness
+  - flow_concentration_index
+  - diversity_efficiency_ratio
+  - pairwise_minimum_distance
+  - replay_buffer_diversity
+resources:
+  estimated_time_per_run: 20 minutes
+  storage_per_run: ~20 MB
+  total_runs: 5
+  total_storage: ~100 MB
+  total_time_parallel: 20 minutes
+  total_time_sequential: 1.7 hours
+study_type: validation
+success_criteria:
+  minimum_performance:
+    hypervolume: 1.0
+    mce: 0.25
+    qds: 0.58
+    tds: 0.5
+  stability:
+    description: Low variance across seeds indicates stable configuration
+    max_coefficient_of_variation: 0.2
+  statistical_significance:
+    alpha: 0.05
+    description: Performance must be statistically better than factorial mean
+    required_p_value: <0.05
+validation:
+  comparison_baseline:
+    description: Compare against mean performance across all factorial conditions
+    expectation: Best config should outperform factorial mean on QDS and hypervolume
+  expected_performance:
+    hypervolume_mean: '>1.10'
+    hypervolume_std: <0.10
+    mce_mean: '>0.25'
+    mce_std: <0.05
+    qds_mean: '>0.60'
+    qds_std: <0.05
+    tds_mean: '>0.50'
+    tds_std: <0.05
+  hypotheses:
+    h1_qds:
+      prediction: QDS > 0.60
+      rationale: "Large model (128\xD74) with high exploration (\u03C4=5.0) optimizes\
+        \ quality-diversity balance"
+      statement: Best config achieves highest Quality-Diversity Score (QDS)
+    h2_hypervolume:
+      prediction: Hypervolume > 1.10
+      rationale: Large capacity enables better Pareto front coverage
+      statement: Best config achieves high Hypervolume
+    h3_mce:
+      prediction: MCE > 0.25
+      rationale: QDS-optimization prioritizes quality over exhaustive mode coverage
+      statement: Best config achieves moderate Mode Coverage Entropy
+    h4_tds:
+      prediction: TDS > 0.50
+      rationale: High temperature sampling generates diverse solution paths
+      statement: Best config achieves high Trajectory Diversity Score
+  purpose: Confirm optimal QDS-based configuration performance on HyperGrid

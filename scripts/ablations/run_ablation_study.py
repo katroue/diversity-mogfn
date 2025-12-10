@@ -16,7 +16,7 @@ Usage:
     python scripts/ablations/run_ablation_study.py \
         --config configs/ablations/sampling_ablation.yaml \
         --ablation sampling \
-        --output_dir results/ablations/sampling
+        --output_dir results/ablations/sampling_temp_2.0
     
     # Loss ablation with resume after updated groups based on prior results
     python scripts/ablations/run_ablation_study.py \
@@ -47,11 +47,9 @@ sys.path.insert(0, str(project_root))
 from src.models.mogfn_pc import MOGFN_PC, PreferenceSampler, MOGFNTrainer
 from src.environments.hypergrid import HyperGrid
 from src.metrics.traditional import compute_all_traditional_metrics
-from src.metrics.trajectory import trajectory_diversity_score, multi_path_diversity
-from src.metrics.spatial import mode_coverage_entropy, pairwise_minimum_distance
+from src.metrics.trajectory import trajectory_diversity_score
+from src.metrics.spatial import mode_coverage_entropy
 from src.metrics.objective import pareto_front_smoothness
-from src.metrics.dynamics import replay_buffer_diversity
-from src.metrics.flow import flow_concentration_index
 from src.metrics.composite import quality_diversity_score
 from src.utils.tensor_utils import to_numpy, to_hashable
 

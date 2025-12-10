@@ -1,0 +1,253 @@
+# ============================================================================
+# TEMPERATURE × OFF-POLICY INTERACTION VALIDATION
+# ============================================================================
+# Purpose: Validate the discovered non-linear interaction between temperature
+#          sampling and off-policy exploration on HyperGrid task
+#
+# Background: Initial validation run with broken config (used wrong parameter
+#             names: environment/temperature_sampling) caused universal mode
+#             collapse (MCE=0) across ALL conditions, both on-policy and off-policy.
+#             Re-running with corrected config to properly test interaction.
+#
+# Hypothesis: Off-policy exploration is beneficial at moderate temperatures
+#             but harmful at very high temperatures, causing mode collapse
+#
+# Design: Simplified 1×2 factorial (temp=5.0 only)
+#   Factor A (Temperature): 1 level (5.0) - FIXED
+#   Factor B (Off-policy): 2 levels (0.0, 0.1)
+#   Total: 2 conditions × 3 seeds = 6 experiments
+#
+# Rationale: Quick tests (500 iterations) showed:
+#   - temp=1.0: BOTH on/off-policy collapse (temp too low)
+#   - temp=2.0: Also collapses at 500 iterations
+#   - temp=5.0: Works well (MCE=0.29, need to test off-policy effect)
+#
+# Expected Results (based on factorial study):
+#   - temp=5.0, off_policy=0.0: MCE~0.30-0.40 (healthy)
+#   - temp=5.0, off_policy=0.1: MCE~0.00 (✗ COLLAPSE - hypothesis)
+#
+# Time Estimate: ~1.2 hours for 6 experiments
+# ============================================================================
+
+experiment_name: "temp_offpolicy_interaction"
+study_type: "validation"
+
+# ============================================================================
+# FIXED PARAMETERS (Consistent across all conditions)
+# ============================================================================
+
+fixed:
+  # Task: HyperGrid 32×32
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model architecture (LARGE - from best config)
+  hidden_dim: 128
+  num_layers: 4
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training parameters
+  max_iterations: 4000  # Same as factorial studies
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds (3 seeds for faster validation)
+  num_seeds: 3
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Temperature × Off-Policy
+# ============================================================================
+
+factors:
+  # Factor A: Temperature (FIXED at 5.0)
+  temperature:
+    description: "Sampling temperature for exploration control"
+    levels:
+      temp5:
+        temperature: 5.0
+        label: "τ=5.0 (very high)"
+
+  # Factor B: Off-Policy Ratio (2 levels)
+  offpolicy:
+    description: "Off-policy exploration ratio"
+    levels:
+      off0:
+        off_policy_ratio: 0.0
+        label: "On-policy (ε=0.0)"
+      off10:
+        off_policy_ratio: 0.1
+        label: "Off-policy (ε=0.1)"
+
+  # Factor C: Loss (SubTB with entropy regularization - FIXED)
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (3 temps × 2 off-policy × 1 loss = 6 conditions)
+# ============================================================================
+
+conditions:
+  # Temperature = 5.0 (ONLY testing high temp)
+  - name: "temp5_off0"
+    temperature: "temp5"
+    offpolicy: "off0"
+    loss: "subtb_entropy"
+
+  - name: "temp5_off10"
+    temperature: "temp5"
+    offpolicy: "off10"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS TO EVALUATE
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy  # MCE: Will show collapse at temp5_off10
+    - num_modes  # Will be 1 for temp5_off10
+    - quality_diversity_score  # QDS: Overall performance
+    - hypervolume  # Quality metric
+
+  secondary:
+    - trajectory_diversity_score  # TDS
+    - pareto_front_smoothness  # PFS
+    - pairwise_minimum_distance  # PMD
+
+# ============================================================================
+# VALIDATION OBJECTIVES
+# ============================================================================
+
+validation:
+  purpose: "Validate temperature × off-policy interaction hypothesis"
+
+  hypotheses:
+    h1_moderate_temp:
+      statement: "Off-policy improves diversity at moderate temperature (τ=1.0)"
+      prediction: "MCE(temp1_off10) > MCE(temp1_off0)"
+      expected: "0.45 > 0.18"
+
+    h2_high_temp:
+      statement: "Off-policy slightly improves diversity at high temperature (τ=2.0)"
+      prediction: "MCE(temp2_off10) ≥ MCE(temp2_off0)"
+      expected: "0.40 ≥ 0.36"
+
+    h3_very_high_temp:
+      statement: "Off-policy causes mode collapse at very high temperature (τ=5.0)"
+      prediction: "MCE(temp5_off10) << MCE(temp5_off0)"
+      expected: "0.00 << 0.37"
+
+    h4_interaction:
+      statement: "Temperature × off-policy interaction is non-linear"
+      prediction: "Effect of off-policy reverses at high temperature"
+      test: "ANOVA interaction term significant (p < 0.05)"
+
+  success_criteria:
+    h3_collapse:
+      description: "Mode collapse at temp5_off10"
+      mce_threshold: 0.05  # Must be near zero
+      num_modes_threshold: 2  # Must be ≤ 2 modes
+
+    h1_improvement:
+      description: "Improvement at temp1_off10"
+      mce_increase: 0.15  # Must increase by at least 0.15
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 6  # 2 conditions × 3 seeds
+  estimated_time_per_run: "12 minutes"  # 4000 iterations on HyperGrid
+  total_time_sequential: "1.2 hours"
+  total_time_parallel: "24 minutes"  # With 2-3 parallel jobs
+
+  storage_per_run: "~20 MB"
+  total_storage: "~120 MB"
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+  statistical_tests:
+    - name: "Two-way ANOVA"
+      factors: ["temperature", "offpolicy"]
+      response: ["mce", "qds", "num_modes"]
+      test_interaction: true
+
+    - name: "Post-hoc comparisons"
+      method: "Tukey HSD"
+      comparisons:
+        - "temp1_off0 vs temp1_off10"
+        - "temp5_off0 vs temp5_off10"
+
+  visualizations:
+    - type: "interaction_plot"
+      x_axis: "temperature"
+      lines: "offpolicy"
+      y_axis: "mce"
+      title: "Temperature × Off-Policy Interaction on Mode Coverage"
+
+    - type: "bar_plot"
+      x_axis: "condition"
+      y_axis: ["mce", "num_modes", "qds"]
+      title: "Key Metrics Across All Conditions"
+
+    - type: "heatmap"
+      rows: "temperature"
+      cols: "offpolicy"
+      values: "mce"
+      title: "MCE Heatmap: Temperature × Off-Policy"
+
+  expected_pattern:
+    description: |
+      Expected interaction pattern:
+      - At temp=1.0: off-policy increases MCE (beneficial)
+      - At temp=2.0: off-policy slightly increases MCE (neutral/beneficial)
+      - At temp=5.0: off-policy decreases MCE to ~0 (harmful - mode collapse)
+
+      This creates a "flip" in the effect of off-policy as temperature increases,
+      indicating a non-linear interaction.
+
+# ============================================================================
+# IMPLICATIONS FOR MAIN STUDY
+# ============================================================================
+
+implications:
+  if_validated:
+    - "Confirms factorial results used valid parameter combinations"
+    - "Explains why best_config collapsed (temp=5.0 + off=0.1)"
+    - "Provides novel insight: exploration strategies must match temperature"
+    - "Suggests practical rule: off-policy only with moderate temperatures"
+
+  for_report:
+    - "Dedicated section: 'Non-Linear Temperature × Off-Policy Interaction'"
+    - "Frame as discovery from systematic investigation"
+    - "Highlight practical implications for practitioners"
+    - "Compare to related work on exploration in RL"

@@ -1,0 +1,187 @@
+# ============================================================================
+# BEST CONFIGURATION FROM FACTORIAL ANALYSIS (HYPERGRID 32×32)
+# ============================================================================
+# Purpose: Validate the optimal hyperparameter configuration identified through
+#          comprehensive factorial analysis
+#
+# Best Configuration Found (QDS-optimized, task-specific):
+#   - Model: 128 hidden dimensions, 4 layers MLP (LARGE capacity)
+#   - Sampling: Temperature = 5.0 (very high exploration)
+#   - Loss: SubTrajectory Balance (SubTB, λ=0.9) with 0.01 regularization
+#   - Policy: 10% off-policy ratio
+#   - Conditioning: Concat mechanism
+#
+# Selection Criterion: Highest QDS across all factorial conditions
+#   - QDS: 0.6184 (rank 1/28 - BEST overall)
+#   - MCE: 0.3044 (moderate - intentional trade-off)
+#   - Hypervolume: 1.2100 (excellent quality)
+#   - TDS: 0.5623 (good trajectory diversity)
+#
+# Rationale: Spatial tasks benefit from large capacity for modeling complex
+#            continuous reward landscapes across the 32×32 grid
+#
+# Experimental Design: 1 condition × 5 seeds = 5 runs
+# ============================================================================
+
+experiment_name: "hypergrid_best_config"
+study_type: "validation"
+
+# ============================================================================
+# FIXED PARAMETERS (Best configuration from factorial analysis)
+# ============================================================================
+
+fixed:
+  # Task: HyperGrid 32×32
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model architecture (LARGE capacity - optimal for spatial tasks)
+  hidden_dim: 128
+  num_layers: 4
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference sampling (BEST from analysis)
+  preference_distribution: "dirichlet"
+  temperature: 5.0  # Very high exploration
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training parameters
+  max_iterations: 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds (same as factorial study)
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN (Single condition: best loss configuration)
+# ============================================================================
+
+factors:
+  # Factor: Loss Function (only the best one)
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (Single condition)
+# ============================================================================
+
+conditions:
+  - name: "large_subtb_entropy"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS TO EVALUATE
+# ============================================================================
+
+metrics:
+  primary:
+    - quality_diversity_score  # QDS: PRIMARY selection criterion
+    - hypervolume  # Quality: Pareto front coverage
+    - mode_coverage_entropy  # MCE: Spatial diversity
+    - trajectory_diversity_score  # TDS: Path diversity
+
+  secondary:
+    - preference_aligned_spread  # PAS: Diversity aligned with preferences
+    - pareto_front_smoothness  # PFS: Preference alignment
+    - flow_concentration_index  # FCI: Flow concentration
+    - diversity_efficiency_ratio  # DER: Diversity per computation
+    - pairwise_minimum_distance  # PMD: Objective space spread
+    - replay_buffer_diversity  # RBD: Training sample diversity
+
+# ============================================================================
+# VALIDATION OBJECTIVES
+# ============================================================================
+
+validation:
+  purpose: "Confirm optimal QDS-based configuration performance on HyperGrid"
+
+  hypotheses:
+    h1_qds:
+      statement: "Best config achieves highest Quality-Diversity Score (QDS)"
+      prediction: "QDS > 0.60"
+      rationale: "Large model (128×4) with high exploration (τ=5.0) optimizes quality-diversity balance"
+
+    h2_hypervolume:
+      statement: "Best config achieves high Hypervolume"
+      prediction: "Hypervolume > 1.10"
+      rationale: "Large capacity enables better Pareto front coverage"
+
+    h3_mce:
+      statement: "Best config achieves moderate Mode Coverage Entropy"
+      prediction: "MCE > 0.25"
+      rationale: "QDS-optimization prioritizes quality over exhaustive mode coverage"
+
+    h4_tds:
+      statement: "Best config achieves high Trajectory Diversity Score"
+      prediction: "TDS > 0.50"
+      rationale: "High temperature sampling generates diverse solution paths"
+
+  expected_performance:
+    qds_mean: ">0.60"
+    qds_std: "<0.05"
+    hypervolume_mean: ">1.10"
+    hypervolume_std: "<0.10"
+    mce_mean: ">0.25"
+    mce_std: "<0.05"
+    tds_mean: ">0.50"
+    tds_std: "<0.05"
+
+  comparison_baseline:
+    description: "Compare against mean performance across all factorial conditions"
+    expectation: "Best config should outperform factorial mean on QDS and hypervolume"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5  # 1 condition × 5 seeds
+  estimated_time_per_run: "20 minutes"  # 20000 iterations on HyperGrid
+  total_time_sequential: "1.7 hours"
+  total_time_parallel: "20 minutes"  # With 5 parallel jobs
+
+  storage_per_run: "~20 MB"
+  total_storage: "~100 MB"
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+
+  minimum_performance:
+    qds: 0.58  # Must exceed 0.58 for quality-diversity balance
+    hypervolume: 1.00  # Must exceed 1.00 for Pareto quality
+    mce: 0.25  # Must exceed 0.25 for diversity
+    tds: 0.50  # Must exceed 0.50 for trajectory diversity
+
+  statistical_significance:
+    description: "Performance must be statistically better than factorial mean"
+    alpha: 0.05
+    required_p_value: "<0.05"
+
+  stability:
+    description: "Low variance across seeds indicates stable configuration"
+    max_coefficient_of_variation: 0.20  # CV = std/mean < 0.20

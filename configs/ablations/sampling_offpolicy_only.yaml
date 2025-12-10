@@ -1,0 +1,64 @@
+# Sampling Ablation Configuration - OFF-POLICY EXPERIMENTS ONLY
+# Tests only the off-policy ratio experiments at temperature = 2.0
+
+# Base configuration (same for all experiments)
+fixed:
+  env_name: 'hypergrid'
+  env_kwargs:
+    ndim: 8
+    height: 8
+    R0: 0.01
+    R1: 0.5
+    R2: 2.0
+
+  # Training parameters
+  num_iterations: 4000
+  batch_size: 128
+  lr: 0.001
+
+  # Evaluation
+  num_samples: 1000
+  eval_every: 500
+
+  # Model architecture (from capacity ablation)
+  hidden_dim: 128
+  num_layers: 4
+  conditioning: 'concat'  # Updated to concat
+
+  # Logging
+  wandb: false
+  save_trajectories: true
+
+# Seeds for statistical robustness
+seeds: [42, 123, 456, 789, 1011]
+
+# Experiments: OFF-POLICY ONLY
+experiments:
+
+  # ========================================
+  # ON-POLICY VS OFF-POLICY (at temp=2.0)
+  # ========================================
+
+  - name: 'on_policy_pure'
+    off_policy_ratio: 0.0  # 100% on-policy
+    temperature: 2.0
+    sampling_strategy: 'categorical'
+    description: 'Pure on-policy training'
+
+  - name: 'off_policy_10'
+    off_policy_ratio: 0.1  # 10% random exploration
+    temperature: 2.0
+    sampling_strategy: 'categorical'
+    description: '10% off-policy (random) exploration'
+
+  - name: 'off_policy_25'
+    off_policy_ratio: 0.25  # 25% random exploration
+    temperature: 2.0
+    sampling_strategy: 'categorical'
+    description: '25% off-policy exploration'
+
+  - name: 'off_policy_50'
+    off_policy_ratio: 0.5  # 50% random exploration
+    temperature: 2.0
+    sampling_strategy: 'categorical'
+    description: '50% off-policy exploration'

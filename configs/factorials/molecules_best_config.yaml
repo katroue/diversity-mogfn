@@ -1,0 +1,197 @@
+# ============================================================================
+# BEST CONFIGURATION FROM FACTORIAL ANALYSIS (MOLECULES)
+# ============================================================================
+# Purpose: Validate the optimal hyperparameter configuration identified through
+#          comprehensive factorial analysis
+#
+# Best Configuration Found (QDS-optimized, task-specific):
+#   - Model: 32 hidden dimensions, 2 layers MLP (SMALL capacity)
+#   - Sampling: Temperature = 1.0 (low exploration)
+#   - Loss: SubTrajectory Balance (SubTB, λ=0.9) with 0.01 regularization
+#   - Policy: 10% off-policy ratio
+#   - Conditioning: Concat mechanism
+#
+# Selection Criterion: Highest QDS across all factorial conditions
+#   - QDS: 0.6563 (rank 1/28 - BEST overall, highest across ALL tasks!)
+#   - MCE: 0.2127 (low - molecules have focused diversity)
+#   - Hypervolume: 0.0304 (low - challenging optimization space)
+#   - TDS: 0.9026 (very high - molecular trajectories are diverse)
+#
+# Rationale: Constrained generation benefits from small models + low temperature
+#            to maintain chemical validity while exploring diverse structures
+#
+# Experimental Design: 1 condition × 5 seeds = 5 runs
+# ============================================================================
+
+experiment_name: "molecules_best_config"
+study_type: "validation"
+
+# ============================================================================
+# FIXED PARAMETERS (Best configuration from factorial analysis)
+# ============================================================================
+
+fixed:
+  # Task: Molecules generation
+  environment: 'molecules'
+  max_fragments: 8
+  num_fragments_library: 15
+  use_rdkit: True
+  objective_properties:
+    - "qed"
+    - "sa"
+    - "logp"
+
+  # Model architecture (SMALL capacity - optimal for constrained generation)
+  hidden_dim: 32
+  num_layers: 2
+  conditioning: "concat"
+  activation: "relu"
+
+  # Loss function (using modifications: none format from factorial)
+  modifications: "none"
+  modifications_params: {}
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  temperature: 1.0  # Low exploration for chemical validity
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training
+  max_iterations: 10000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN (Single condition: best loss configuration)
+# ============================================================================
+
+factors:
+  # Factor: Loss Function (only the best one)
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (Single condition)
+# ============================================================================
+
+conditions:
+  - name: "small_subtb_entropy"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS TO EVALUATE
+# ============================================================================
+
+metrics:
+  primary:
+    - quality_diversity_score  # QDS: PRIMARY selection criterion
+    - trajectory_diversity_score  # TDS: Path diversity (very important for molecules)
+    - mode_coverage_entropy  # MCE: Spatial diversity
+    - hypervolume  # Quality: Pareto front coverage
+
+  secondary:
+    - preference_aligned_spread  # PAS: Diversity aligned with preferences
+    - pareto_front_smoothness  # PFS: Preference alignment
+    - flow_concentration_index  # FCI: Flow concentration
+    - diversity_efficiency_ratio  # DER: Diversity per computation
+    - pairwise_minimum_distance  # PMD: Objective space spread
+    - replay_buffer_diversity  # RBD: Training sample diversity
+
+# ============================================================================
+# VALIDATION OBJECTIVES
+# ============================================================================
+
+validation:
+  purpose: "Confirm optimal QDS-based configuration performance on Molecules"
+
+  hypotheses:
+    h1_qds:
+      statement: "Best config achieves very high Quality-Diversity Score (QDS)"
+      prediction: "QDS > 0.63"
+      rationale: "Small model (32×2) with low temp achieves excellent quality-diversity for molecules"
+
+    h2_tds:
+      statement: "Best config achieves very high Trajectory Diversity Score"
+      prediction: "TDS > 0.85"
+      rationale: "Molecular construction paths are inherently diverse"
+
+    h3_mce:
+      statement: "Best config achieves moderate Mode Coverage Entropy"
+      prediction: "MCE > 0.18"
+      rationale: "Chemical constraints limit mode diversity, focus on quality"
+
+    h4_validity:
+      statement: "Best config generates chemically valid molecules"
+      prediction: "Validity > 90%"
+      rationale: "Low temperature sampling maintains chemical validity"
+
+  expected_performance:
+    qds_mean: ">0.63"
+    qds_std: "<0.05"
+    tds_mean: ">0.85"
+    tds_std: "<0.05"
+    mce_mean: ">0.18"
+    mce_std: "<0.03"
+    hypervolume_mean: ">0.025"
+    hypervolume_std: "<0.01"
+
+  comparison_baseline:
+    description: "Compare against mean performance across all factorial conditions"
+    expectation: "Best config should outperform factorial mean on QDS and TDS"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5  # 1 condition × 5 seeds
+  estimated_time_per_run: "45 minutes"  # 20000 iterations on molecules (slower)
+  total_time_sequential: "3.75 hours"
+  total_time_parallel: "45 minutes"  # With 5 parallel jobs
+
+  storage_per_run: "~40 MB"
+  total_storage: "~200 MB"
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+
+  minimum_performance:
+    qds: 0.60  # Must exceed 0.60 for quality-diversity balance
+    tds: 0.80  # Must exceed 0.80 for trajectory diversity
+    mce: 0.15  # Must exceed 0.15 for mode coverage
+    validity: 0.85  # Must exceed 85% valid molecules
+
+  statistical_significance:
+    description: "Performance must be statistically better than factorial mean"
+    alpha: 0.05
+    required_p_value: "<0.05"
+
+  stability:
+    description: "Low variance across seeds indicates stable configuration"
+    max_coefficient_of_variation: 0.20  # CV = std/mean < 0.20

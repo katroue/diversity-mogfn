@@ -190,13 +190,11 @@ def run_single_experiment(exp_config: dict,
         from src.models.mogfn_pc import MOGFN_PC, PreferenceSampler, MOGFNTrainer, MOGFNSampler
         from src.environments.hypergrid import HyperGrid
         from src.metrics.traditional import compute_all_traditional_metrics
-        from src.metrics.trajectory import trajectory_diversity_score, multi_path_diversity
-        from src.metrics.spatial import mode_coverage_entropy, pairwise_minimum_distance
-        from src.metrics.objective import preference_aligned_spread, pareto_front_smoothness
-        from src.metrics.dynamics import replay_buffer_diversity
-        from src.metrics.flow import flow_concentration_index
-        from src.metrics.composite import quality_diversity_score, diversity_efficiency_ratio
-        from src.utils.tensor_utils import to_numpy, to_hashable
+        from src.metrics.trajectory import trajectory_diversity_score
+        from src.metrics.spatial import mode_coverage_entropy
+        from src.metrics.objective import pareto_front_smoothness
+        from src.metrics.composite import quality_diversity_score
+        from src.utils.tensor_utils import to_numpy
     except ImportError as e:
         print(f"Warning: Could not import training modules: {e}")
         print("Running in placeholder mode (for testing script logic)")
@@ -222,8 +220,15 @@ def run_single_experiment(exp_config: dict,
     exp_name = exp_config['exp_name']
 
     # Create environment
+    # Handle both grid_size formats: integer (32) or list ([32, 32])
+    grid_size = exp_config.get('grid_size', 32)
+    if isinstance(grid_size, list):
+        grid_height = grid_size[0]
+    else:
+        grid_height = grid_size
+
     env = HyperGrid(
-        height=exp_config.get('grid_size', [32, 32])[0],
+        height=grid_height,
         num_objectives=2,
         reward_config='corners'
     )
@@ -309,34 +314,10 @@ def run_single_experiment(exp_config: dict,
         trajectories.append(traj)
 
     metrics['tds'] = trajectory_diversity_score(trajectories)
-    metrics['mpd'] = multi_path_diversity(trajectories)
 
     # Spatial metrics
     metrics['mce'], metrics['num_modes'] = mode_coverage_entropy(objectives)
-    metrics['pmd'] = pairwise_minimum_distance(objectives)
     metrics['pfs'] = pareto_front_smoothness(objectives)
-
-    # Objective metrics (simplified PAS)
-    try:
-        from scipy.spatial.distance import pdist
-        if len(objectives) > 10:
-            dists = pdist(objectives, metric='euclidean')
-            metrics['pas'] = float(np.mean(dists))
-        else:
-            metrics['pas'] = 0.0
-    except Exception:
-        metrics['pas'] = 0.0
-
-    # Dynamics metrics
-    metrics['rbd'] = replay_buffer_diversity(trajectories, metric='trajectory_distance')
-
-    # Flow metrics
-    state_visits = {}
-    for traj in trajectories:
-        for state in traj.states:
-            state_key = to_hashable(state)
-            state_visits[state_key] = state_visits.get(state_key, 0) + 1
-    metrics['fci'] = flow_concentration_index(state_visits)
 
     # Composite metrics
     qds_results = quality_diversity_score(
@@ -345,13 +326,6 @@ def run_single_experiment(exp_config: dict,
         alpha=0.5
     )
     metrics['qds'] = qds_results['qds']
-
-    der_results = diversity_efficiency_ratio(
-        objectives,
-        training_time=training_time,
-        num_parameters=num_params
-    )
-    metrics['der'] = der_results['der']
 
     # Add metadata
     metrics['num_parameters'] = num_params

@@ -7,7 +7,7 @@
 # Best Configuration Found:
 #   - Model: 64 hidden dimensions, 3 layers MLP
 #   - Sampling: Temperature = 5.0, Categorical sampling
-#   - Loss: Trajectory Balance (TB) with 0.01 regularization
+#   - Loss: SubTrajectory Balance (SubTB, λ=0.9) with 0.01 entropy regularization
 #   - Policy: 10% off-policy ratio
 #   - Conditioning: FiLM mechanism
 #
@@ -33,74 +33,70 @@ fixed:
   seq_length: 20
   temperature_seq: 37.0  # Celsius for NUPACK stability calculations
   use_viennarna: True
-  objectives:
+  objective_properties:
     - "free_energy"
-    - "num_base_pairs"
+    - "num_baise_pairs"
     - "inverse_length"
 
-  # Model architecture (BEST from analysis)
+  # Model architecture (BEST from analysis: medium capacity)
   hidden_dim: 64
   num_layers: 3
-  conditioning: "film"  # FiLM conditioning mechanism
+  conditioning: "concat"
   activation: "relu"
 
-  # Sampling strategy (BEST from analysis)
-  temperature_sampling: 5.0  # High exploration
-  sampling_strategy: "categorical"
-
-  # Loss function (BEST from analysis)
-  loss_function: "trajectory_balance"  # TB loss
-  loss_params:
-    log_reward_clip: 10.0
-  regularization: "entropy"
-  regularization_params:
-    beta: 0.01  # 0.01 regularization
+  # Loss function (using modifications: none format from factorial)
   modifications: "none"
   modifications_params: {}
 
-  # Preference sampling (BEST from analysis)
+  # Preference sampling
   preference_distribution: "dirichlet"
+  temperature: 5.0  # High exploration
   dirichlet_alpha: 1.5
   num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
 
-  # Training parameters
+  # Training
   max_iterations: 20000
   batch_size: 128
   optimizer: "adam"
   learning_rate: 0.001
   gradient_clip: 10.0
-  off_policy_ratio: 0.1  # 10% off-policy
 
   # Evaluation
   eval_every: 500
   eval_samples: 1000
   final_eval_samples: 10000
 
-  # Seeds (same as factorial study)
+  # Seeds
   num_seeds: 5
   base_seed: 42
 
 # ============================================================================
-# SINGLE CONDITION: Best Configuration
+# FACTORIAL DESIGN (Single condition: best loss configuration)
 # ============================================================================
 
 factors:
-  # Single factor with one level (best config)
-  config:
-    description: "Best configuration from factorial analysis"
+  # Factor: Loss Function (only the best one)
+  loss:
+    description: "GFlowNet training objective"
     levels:
-      best:
-        label: "Best (64×3, τ=5.0, TB, FiLM)"
-        # All parameters are in fixed section
-        description: "Optimal configuration identified through factorial analysis"
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
 
 # ============================================================================
 # EXPERIMENTAL CONDITIONS (Single condition)
 # ============================================================================
 
 conditions:
-  - name: "best_config"
-    config: "best"
+  - name: "medium_subtb_entropy"
+    loss: "subtb_entropy"
 
 # ============================================================================
 # METRICS TO EVALUATE
@@ -137,7 +133,7 @@ validation:
     h2_hypervolume:
       statement: "Best config achieves high Hypervolume"
       prediction: "Hypervolume > 0.60"
-      rationale: "TB loss with FiLM conditioning optimizes Pareto front quality"
+      rationale: "SubTB loss with FiLM conditioning optimizes Pareto front quality"
 
     h3_qds:
       statement: "Best config achieves high Quality-Diversity Score (QDS)"

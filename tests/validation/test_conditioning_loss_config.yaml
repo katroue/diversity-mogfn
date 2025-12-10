@@ -1,0 +1,122 @@
+# ============================================================================
+# TEST CONFIG: Conditioning × Loss Interaction (Quick Test)
+# ============================================================================
+# Quick test version with reduced iterations and seeds for faster validation
+# ============================================================================
+
+experiment_name: "conditioning_loss_test"
+study_type: "validation"
+
+fixed:
+  # Task: HyperGrid 32×32
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model architecture (LARGE)
+  hidden_dim: 128
+  num_layers: 4
+  activation: "relu"
+
+  # Preference sampling (best from sampling ablation)
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Temperature (use moderate temp=2.0 as baseline)
+  temperature: 2.0
+
+  # Training parameters (REDUCED for quick test)
+  max_iterations: 500  # Reduced from 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 100  # More frequent for quick test
+  eval_samples: 500  # Reduced from 1000
+  final_eval_samples: 1000  # Reduced from 10000
+
+  # Seeds (REDUCED for quick test)
+  num_seeds: 2  # Reduced from 3
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Conditioning × Loss
+# ============================================================================
+
+factors:
+  # Factor A: Conditioning Mechanism (2 levels)
+  conditioning:
+    description: "Preference conditioning mechanism"
+    levels:
+      concat:
+        conditioning: "concat"
+        label: "Concat (direct concatenation)"
+
+      film:
+        conditioning: "film"
+        label: "FiLM (Feature-wise Linear Modulation)"
+
+  # Factor B: Loss Function (3 levels)
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb:
+        label: "SubTB(λ=0.9)"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (2 conditioning × 3 loss = 6 conditions)
+# ============================================================================
+
+conditions:
+  # Concat conditioning × All losses
+  - name: "concat_tb"
+    conditioning: "concat"
+    loss: "tb"
+
+  - name: "concat_subtb"
+    conditioning: "concat"
+    loss: "subtb"
+
+  - name: "concat_subtb_entropy"
+    conditioning: "concat"
+    loss: "subtb_entropy"
+
+  # FiLM conditioning × All losses
+  - name: "film_tb"
+    conditioning: "film"
+    loss: "tb"
+
+  - name: "film_subtb"
+    conditioning: "film"
+    loss: "subtb"
+
+  - name: "film_subtb_entropy"
+    conditioning: "film"
+    loss: "subtb_entropy"

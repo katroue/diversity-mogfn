@@ -1,0 +1,87 @@
+conditions: &id001
+- conditioning: concat
+  loss: tb
+  name: concat_tb
+- conditioning: concat
+  loss: subtb
+  name: concat_subtb
+- conditioning: concat
+  loss: subtb_entropy
+  name: concat_subtb_entropy
+- conditioning: film
+  loss: tb
+  name: film_tb
+- conditioning: film
+  loss: subtb
+  name: film_subtb
+- conditioning: film
+  loss: subtb_entropy
+  name: film_subtb_entropy
+config:
+  conditions: *id001
+  experiment_name: conditioning_loss_test
+  factors:
+    conditioning:
+      description: Preference conditioning mechanism
+      levels:
+        concat:
+          conditioning: concat
+          label: Concat (direct concatenation)
+        film:
+          conditioning: film
+          label: FiLM (Feature-wise Linear Modulation)
+    loss:
+      description: GFlowNet training objective
+      levels:
+        subtb:
+          label: "SubTB(\u03BB=0.9)"
+          loss_function: subtrajectory_balance
+          loss_params:
+            lambda_: 0.9
+            log_reward_clip: 10.0
+          regularization: none
+          regularization_params: {}
+        subtb_entropy:
+          label: "SubTB(\u03BB=0.9) + Entropy"
+          loss_function: subtrajectory_balance
+          loss_params:
+            lambda_: 0.9
+            log_reward_clip: 10.0
+          regularization: entropy
+          regularization_params:
+            beta: 0.01
+        tb:
+          label: Trajectory Balance
+          loss_function: trajectory_balance
+          loss_params:
+            log_reward_clip: 10.0
+          regularization: none
+          regularization_params: {}
+  fixed:
+    activation: relu
+    base_seed: 42
+    batch_size: 128
+    dirichlet_alpha: 1.5
+    eval_every: 100
+    eval_samples: 500
+    final_eval_samples: 1000
+    gradient_clip: 10.0
+    grid_size:
+    - 32
+    - 32
+    hidden_dim: 128
+    learning_rate: 0.001
+    max_iterations: 500
+    num_layers: 4
+    num_preferences_per_batch: 16
+    num_seeds: 2
+    optimizer: adam
+    preference_distribution: dirichlet
+    sampling_strategy: categorical
+    task: hypergrid
+    temperature: 2.0
+  study_type: validation
+seeds:
+- 42
+- 153
+timestamp: '2025-12-09T21:08:58.586768'

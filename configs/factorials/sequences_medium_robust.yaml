@@ -1,0 +1,200 @@
+# ============================================================================
+# MEDIUM ROBUST CONFIGURATION (DNA SEQUENCES)
+# ============================================================================
+# Purpose: Validate medium capacity as a robust default across all tasks
+#
+# Medium Configuration (Robust Default):
+#   - Model: 64 hidden dimensions, 3 layers MLP (MEDIUM capacity)
+#   - Sampling: Temperature = 5.0 (very high exploration)
+#   - Loss: Trajectory Balance (TB) with 0.01 regularization
+#   - Policy: 10% off-policy ratio
+#   - Conditioning: FiLM mechanism
+#
+# Rationale: Medium capacity provides robust performance across all tasks
+#            without task-specific tuning. Serves as practical default
+#            recommendation for practitioners.
+#
+# Performance from Factorial Analysis (medium_veryhigh condition):
+#   - QDS: 0.6009 (rank 2/28 - excellent)
+#   - MCE: 0.4544 (moderate mode coverage)
+#   - Hypervolume: 0.8883 (good quality)
+#   - TDS: 0.5835 (good trajectory diversity)
+#
+# Note: For DNA sequences, medium capacity IS the task-specific best!
+#   - Task-specific best: Medium (64×3, τ=5.0) with QDS=0.6009
+#   - This config serves dual purpose: task-specific optimal AND robust default
+#   - Advantage: Demonstrates medium capacity can be both optimal and robust
+#
+# Experimental Design: 1 condition × 5 seeds = 5 runs
+# ============================================================================
+
+experiment_name: "sequences_medium_robust"
+study_type: "validation"
+
+# ============================================================================
+# FIXED PARAMETERS (Medium robust configuration)
+# ============================================================================
+
+fixed:
+  # Task: DNA sequence generation
+  environment: 'sequences'
+  sequence_length: 60
+  num_objectives: 2
+
+  # Model architecture (MEDIUM capacity - robust default)
+  hidden_dim: 64
+  num_layers: 3
+  conditioning: "film"  # FiLM conditioning mechanism
+  activation: "relu"
+
+  # Sampling strategy (very high temperature for sequence exploration)
+  temperature_sampling: 5.0  # Very high exploration
+  sampling_strategy: "categorical"
+
+  # Loss function (Trajectory Balance)
+  loss_function: "trajectory_balance"  # TB loss
+  loss_params:
+    log_reward_clip: 10.0
+  regularization: "entropy"
+  regularization_params:
+    beta: 0.01  # 0.01 regularization
+  modifications: "none"
+  modifications_params: {}
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+
+  # Training parameters
+  max_iterations: 12000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+  off_policy_ratio: 0.1  # 10% off-policy
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds (same as factorial study)
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# SINGLE CONDITION: Medium Robust Configuration
+# ============================================================================
+
+factors:
+  # Single factor with one level (medium robust config)
+  config:
+    description: "Medium capacity robust default configuration"
+    levels:
+      medium_robust:
+        label: "Medium (64×3, τ=5.0, TB, FiLM)"
+        # All parameters are in fixed section
+        description: "Robust default: medium_veryhigh (also task-specific best)"
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (Single condition)
+# ============================================================================
+
+conditions:
+  - name: "medium_robust"
+    config: "medium_robust"
+
+# ============================================================================
+# METRICS TO EVALUATE
+# ============================================================================
+
+metrics:
+  primary:
+    - quality_diversity_score  # QDS: PRIMARY selection criterion
+    - hypervolume  # Quality: Pareto front coverage
+    - mode_coverage_entropy  # MCE: Spatial diversity
+    - trajectory_diversity_score  # TDS: Path diversity
+
+  secondary:
+    - preference_aligned_spread  # PAS: Diversity aligned with preferences
+    - pareto_front_smoothness  # PFS: Preference alignment
+    - flow_concentration_index  # FCI: Flow concentration
+    - diversity_efficiency_ratio  # DER: Diversity per computation
+    - pairwise_minimum_distance  # PMD: Objective space spread
+    - replay_buffer_diversity  # RBD: Training sample diversity
+
+# ============================================================================
+# VALIDATION OBJECTIVES
+# ============================================================================
+
+validation:
+  purpose: "Validate medium capacity as robust default for DNA sequences"
+
+  hypotheses:
+    h1_qds:
+      statement: "Medium config achieves optimal Quality-Diversity Score"
+      prediction: "QDS > 0.58"
+      rationale: "Medium capacity (64×3) is task-specific optimal for sequences"
+
+    h2_hypervolume:
+      statement: "Medium config achieves high Hypervolume"
+      prediction: "Hypervolume > 0.85"
+      rationale: "TB loss optimizes Pareto front quality"
+
+    h3_mce:
+      statement: "Medium config achieves moderate Mode Coverage Entropy"
+      prediction: "MCE > 0.40"
+      rationale: "Balances quality and diversity in sequence space"
+
+    h4_robustness:
+      statement: "Medium config shows stable performance across seeds"
+      prediction: "Coefficient of variation < 0.20"
+      rationale: "Medium capacity balances expressiveness and generalization"
+
+  expected_performance:
+    qds_mean: ">0.58"
+    qds_std: "<0.05"
+    hypervolume_mean: ">0.85"
+    hypervolume_std: "<0.10"
+    mce_mean: ">0.40"
+    mce_std: "<0.05"
+    tds_mean: ">0.55"
+    tds_std: "<0.05"
+
+  comparison_baseline:
+    description: "Compare against factorial mean performance"
+    expectation: "Medium should outperform factorial mean on all metrics"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5  # 1 condition × 5 seeds
+  estimated_time_per_run: "30 minutes"  # 20000 iterations on sequences
+  total_time_sequential: "2.5 hours"
+  total_time_parallel: "30 minutes"  # With 5 parallel jobs
+
+  storage_per_run: "~30 MB"
+  total_storage: "~150 MB"
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+
+  minimum_performance:
+    qds: 0.58  # Must exceed 0.58 for quality-diversity balance
+    hypervolume: 0.80  # Must exceed 0.80 for Pareto quality
+    mce: 0.40  # Must exceed 0.40 for diversity
+    tds: 0.55  # Must exceed 0.55 for trajectory diversity
+
+  robustness:
+    description: "Medium as robust default across tasks"
+    max_coefficient_of_variation: 0.20  # CV = std/mean < 0.20
+
+  comparison_to_factorial:
+    description: "Performance relative to factorial mean"
+    expectation: "Should outperform factorial mean on QDS, hypervolume, and TDS"

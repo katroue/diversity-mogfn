@@ -1,0 +1,18 @@
+{
+  "hypervolume": 1.2099999985711574,
+  "r2_indicator": -0.2722222220615049,
+  "avg_pairwise_distance": 0.14161720168441838,
+  "spacing": 0.10359634459018707,
+  "spread": 1.4865098510852277,
+  "tds": 0.06715042542944293,
+  "mce": 0.2517217388712484,
+  "num_modes": 2,
+  "pfs": 0.0,
+  "qds": 0.5455173576769284,
+  "num_parameters": 68103,
+  "training_time": 1139.410451,
+  "final_loss": 92.42782592773438,
+  "seed": 42,
+  "exp_name": "concat_tb_seed42",
+  "condition_name": "concat_tb"
+}

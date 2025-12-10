@@ -1,0 +1,188 @@
+# ============================================================================
+# BEST CONFIGURATION FROM FACTORIAL ANALYSIS (N-GRAMS)
+# ============================================================================
+# Purpose: Validate the optimal hyperparameter configuration identified through
+#          comprehensive factorial analysis
+#
+# Best Configuration Found (QDS-optimized, task-specific):
+#   - Model: 32 hidden dimensions, 2 layers MLP (SMALL capacity)
+#   - Sampling: High temperature (τ=2.0)
+#   - Loss: Trajectory Balance (TB) without entropy regularization
+#   - Policy: 10% off-policy ratio
+#   - Conditioning: FiLM mechanism
+#
+# Selection Criterion: Highest QDS across all factorial conditions
+#   - QDS: 0.5759 (rank 1/28 - BEST overall)
+#   - MCE: 0.6134 (very high - excellent mode coverage)
+#   - Hypervolume: 1.4641 (excellent quality)
+#   - TDS: 0.6088 (high trajectory diversity)
+#
+# Rationale: Simple discrete tasks benefit from small models - prevents
+#            overfitting and enables efficient exploration of n-gram space
+#
+# Experimental Design: 1 condition × 5 seeds = 5 runs
+# ============================================================================
+
+experiment_name: "ngrams_best_config"
+study_type: "validation"
+
+# ============================================================================
+# FIXED PARAMETERS (Best configuration from factorial analysis)
+# ============================================================================
+
+fixed:
+  # Task: N-grams sequence generation
+  task: "ngrams"
+  vocab_size: 4                # Vocabulary: A, B, C, D
+  seq_length: 8                # Generate 8-character sequences
+  ngram_length: 2              # Count bigrams
+  normalize_rewards: true      # Normalize counts by max possible
+
+  # Model architecture (SMALL capacity - optimal for simple discrete tasks)
+  hidden_dim: 32
+  num_layers: 2
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  temperature: 2.0  # High temperature (optimal from factorial)
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training parameters
+  max_iterations: 8000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds (same as factorial study)
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN (Single condition: best loss configuration)
+# ============================================================================
+
+factors:
+  # Factor: Loss Function (only the best one)
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (Single condition)
+# ============================================================================
+
+conditions:
+  - name: "small_tb"
+    loss: "tb"
+
+# ============================================================================
+# METRICS TO EVALUATE
+# ============================================================================
+
+metrics:
+  primary:
+    - quality_diversity_score  # QDS: PRIMARY selection criterion
+    - mode_coverage_entropy  # MCE: Spatial diversity (high for n-grams)
+    - hypervolume  # Quality: Pareto front coverage
+    - trajectory_diversity_score  # TDS: Path diversity
+
+  secondary:
+    - preference_aligned_spread  # PAS: Diversity aligned with preferences
+    - pareto_front_smoothness  # PFS: Preference alignment
+    - flow_concentration_index  # FCI: Flow concentration
+    - diversity_efficiency_ratio  # DER: Diversity per computation
+    - pairwise_minimum_distance  # PMD: Objective space spread
+    - replay_buffer_diversity  # RBD: Training sample diversity
+
+# ============================================================================
+# VALIDATION OBJECTIVES
+# ============================================================================
+
+validation:
+  purpose: "Confirm optimal QDS-based configuration performance on N-grams"
+
+  hypotheses:
+    h1_qds:
+      statement: "Best config achieves highest Quality-Diversity Score (QDS)"
+      prediction: "QDS > 0.55"
+      rationale: "Small model (32×2) prevents overfitting and achieves optimal balance"
+
+    h2_mce:
+      statement: "Best config achieves high Mode Coverage Entropy"
+      prediction: "MCE > 0.55"
+      rationale: "N-grams task benefits from broad mode exploration with small models"
+
+    h3_hypervolume:
+      statement: "Best config achieves high Hypervolume"
+      prediction: "Hypervolume > 1.40"
+      rationale: "TB loss optimizes Pareto front quality"
+
+    h4_tds:
+      statement: "Best config achieves high Trajectory Diversity Score"
+      prediction: "TDS > 0.55"
+      rationale: "Categorical sampling generates diverse paths"
+
+  expected_performance:
+    qds_mean: ">0.55"
+    qds_std: "<0.05"
+    mce_mean: ">0.55"
+    mce_std: "<0.05"
+    hypervolume_mean: ">1.40"
+    hypervolume_std: "<0.10"
+    tds_mean: ">0.55"
+    tds_std: "<0.05"
+
+  comparison_baseline:
+    description: "Compare against mean performance across all factorial conditions"
+    expectation: "Best config should outperform factorial mean on QDS, MCE, and hypervolume"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5  # 1 condition × 5 seeds
+  estimated_time_per_run: "15 minutes"  # 20000 iterations on n-grams
+  total_time_sequential: "1.25 hours"
+  total_time_parallel: "15 minutes"  # With 5 parallel jobs
+
+  storage_per_run: "~15 MB"
+  total_storage: "~75 MB"
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+
+  minimum_performance:
+    qds: 0.53  # Must exceed 0.53 for quality-diversity balance
+    mce: 0.55  # Must exceed 0.55 for mode coverage
+    hypervolume: 1.30  # Must exceed 1.30 for Pareto quality
+    tds: 0.55  # Must exceed 0.55 for trajectory diversity
+
+  statistical_significance:
+    description: "Performance must be statistically better than factorial mean"
+    alpha: 0.05
+    required_p_value: "<0.05"
+
+  stability:
+    description: "Low variance across seeds indicates stable configuration"
+    max_coefficient_of_variation: 0.20  # CV = std/mean < 0.20

@@ -1,0 +1,39 @@
+{
+  "task": "hypergrid",
+  "grid_size": [
+    32,
+    32
+  ],
+  "hidden_dim": 128,
+  "num_layers": 4,
+  "activation": "relu",
+  "preference_distribution": "dirichlet",
+  "dirichlet_alpha": 1.5,
+  "num_preferences_per_batch": 16,
+  "sampling_strategy": "categorical",
+  "temperature": 2.0,
+  "max_iterations": 500,
+  "batch_size": 128,
+  "optimizer": "adam",
+  "learning_rate": 0.001,
+  "gradient_clip": 10.0,
+  "eval_every": 100,
+  "eval_samples": 500,
+  "final_eval_samples": 1000,
+  "num_seeds": 2,
+  "base_seed": 42,
+  "condition_name": "concat_tb",
+  "conditioning": "concat",
+  "factor_conditioning": "concat",
+  "conditioning_level": "concat",
+  "loss_function": "trajectory_balance",
+  "loss_params": {
+    "log_reward_clip": 10.0
+  },
+  "regularization": "none",
+  "regularization_params": {},
+  "factor_loss": "tb",
+  "loss_level": "tb",
+  "seed": 153,
+  "exp_name": "concat_tb_seed153"
+}

@@ -1,0 +1,346 @@
+# ============================================================================
+# CONDITIONING × LOSS INTERACTION VALIDATION
+# ============================================================================
+# Purpose: Validate whether concat or FiLM conditioning is optimal for different
+#          loss functions on HyperGrid task
+#
+# Background: Full factorial study accidentally used concat conditioning instead
+#             of FiLM. Need to determine if this was correct or if FiLM would
+#             have performed better.
+#
+# Research Question: Does optimal conditioning mechanism depend on loss function?
+#
+# Design: 2×3 factorial
+#   Factor A (Conditioning): concat, FiLM
+#   Factor B (Loss): TB, SubTB(λ=0.9), SubTB(λ=0.9)+Entropy
+#   Total: 6 conditions × 3 seeds = 18 experiments
+#
+# Expected Results:
+#   - If concat is optimal: All concat conditions should outperform FiLM
+#   - If FiLM is optimal: All FiLM conditions should outperform concat
+#   - If interaction exists: Optimal conditioning depends on loss function
+#
+# Time Estimate: ~3.6 hours for 18 experiments (sequential), ~36 min (5 parallel)
+# ============================================================================
+
+experiment_name: "conditioning_loss_interaction"
+study_type: "validation"
+
+# ============================================================================
+# FIXED PARAMETERS (Consistent across all conditions)
+# ============================================================================
+
+fixed:
+  # Task: HyperGrid 32×32
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model architecture (LARGE - from capacity ablation)
+  hidden_dim: 128
+  num_layers: 4
+  activation: "relu"
+
+  # Preference sampling (best from sampling ablation)
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Temperature (use moderate temp=2.0 as baseline)
+  temperature: 2.0
+
+  # Training parameters
+  max_iterations: 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds (3 seeds for faster validation)
+  num_seeds: 3
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Conditioning × Loss
+# ============================================================================
+
+factors:
+  # Factor A: Conditioning Mechanism (2 levels)
+  conditioning:
+    description: "Preference conditioning mechanism"
+    levels:
+      concat:
+        conditioning: "concat"
+        label: "Concat (direct concatenation)"
+
+      film:
+        conditioning: "film"
+        label: "FiLM (Feature-wise Linear Modulation)"
+
+  # Factor B: Loss Function (3 levels)
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb:
+        label: "SubTB(λ=0.9)"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (2 conditioning × 3 loss = 6 conditions)
+# ============================================================================
+
+conditions:
+  # Concat conditioning × All losses
+  - name: "concat_tb"
+    conditioning: "concat"
+    loss: "tb"
+
+  - name: "concat_subtb"
+    conditioning: "concat"
+    loss: "subtb"
+
+  - name: "concat_subtb_entropy"
+    conditioning: "concat"
+    loss: "subtb_entropy"
+
+  # FiLM conditioning × All losses
+  - name: "film_tb"
+    conditioning: "film"
+    loss: "tb"
+
+  - name: "film_subtb"
+    conditioning: "film"
+    loss: "subtb"
+
+  - name: "film_subtb_entropy"
+    conditioning: "film"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS TO EVALUATE
+# ============================================================================
+
+metrics:
+  primary:
+    - quality_diversity_score  # QDS: Primary metric
+    - mode_coverage_entropy    # MCE: Diversity
+    - hypervolume              # Quality
+    - num_modes                # Number of solutions
+
+  secondary:
+    - trajectory_diversity_score  # TDS
+    - pareto_front_smoothness     # PFS
+    - pairwise_minimum_distance   # PMD
+
+# ============================================================================
+# VALIDATION OBJECTIVES
+# ============================================================================
+
+validation:
+  purpose: "Determine optimal conditioning mechanism for each loss function"
+
+  hypotheses:
+    h1_concat_superior:
+      statement: "Concat conditioning performs better than FiLM across all losses"
+      prediction: "QDS(concat_*) > QDS(film_*) for all loss functions"
+      note: "Would validate factorial study used correct conditioning"
+
+    h2_film_superior:
+      statement: "FiLM conditioning performs better than concat across all losses"
+      prediction: "QDS(film_*) > QDS(concat_*) for all loss functions"
+      note: "Would mean factorial study should have used FiLM"
+
+    h3_interaction:
+      statement: "Optimal conditioning depends on loss function"
+      prediction: "Some losses work better with concat, others with FiLM"
+      test: "Two-way ANOVA shows significant interaction (p < 0.05)"
+
+    h4_no_difference:
+      statement: "Conditioning mechanism does not significantly affect performance"
+      prediction: "No significant difference in QDS between concat and FiLM"
+      note: "Would mean factorial results are valid regardless of conditioning"
+
+  success_criteria:
+    no_collapse:
+      description: "No mode collapse in any condition"
+      mce_threshold: 0.15
+      num_modes_threshold: 1
+
+    sufficient_diversity:
+      description: "All conditions achieve reasonable diversity"
+      mce_minimum: 0.25
+      qds_minimum: 0.40
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 18  # 6 conditions × 3 seeds
+  estimated_time_per_run: "12 minutes"
+  total_time_sequential: "3.6 hours"
+  total_time_parallel: "36 minutes"  # With 5 parallel jobs
+
+  storage_per_run: "~20 MB"
+  total_storage: "~360 MB"
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+  statistical_tests:
+    - name: "Two-way ANOVA"
+      factors: ["conditioning", "loss"]
+      response: ["qds", "mce", "hypervolume", "num_modes"]
+      test_interaction: true
+      note: "Test if conditioning effect depends on loss function"
+
+    - name: "Post-hoc comparisons (within each loss)"
+      method: "Paired t-tests with Bonferroni correction"
+      comparisons:
+        - "concat_tb vs film_tb"
+        - "concat_subtb vs film_subtb"
+        - "concat_subtb_entropy vs film_subtb_entropy"
+
+    - name: "Main effects"
+      tests:
+        - "Overall concat vs FiLM (marginal means)"
+        - "Overall loss function effects"
+
+  visualizations:
+    - type: "interaction_plot"
+      x_axis: "loss"
+      lines: "conditioning"
+      y_axis: "qds"
+      title: "Conditioning × Loss Interaction on Quality-Diversity"
+      description: "Parallel lines = no interaction, crossing lines = interaction"
+
+    - type: "bar_plot"
+      x_axis: "condition"
+      y_axis: ["qds", "mce", "hypervolume"]
+      title: "Key Metrics by Conditioning and Loss"
+      grouping: "conditioning"
+
+    - type: "heatmap"
+      rows: "conditioning"
+      cols: "loss"
+      values: "qds"
+      title: "QDS Heatmap: Conditioning × Loss"
+
+  expected_patterns:
+    pattern_1:
+      description: "Concat universally better"
+      expected: "All concat conditions QDS > corresponding FiLM conditions"
+      interpretation: "Factorial study used correct conditioning"
+
+    pattern_2:
+      description: "FiLM universally better"
+      expected: "All FiLM conditions QDS > corresponding concat conditions"
+      interpretation: "Should update best_config.yaml to use FiLM"
+
+    pattern_3:
+      description: "Interaction effect"
+      expected: "Some losses work better with concat, others with FiLM"
+      interpretation: "Conditioning choice depends on loss function"
+
+    pattern_4:
+      description: "No significant difference"
+      expected: "QDS differences < 0.05 for all pairs"
+      interpretation: "Conditioning mechanism doesn't matter much"
+
+# ============================================================================
+# IMPLICATIONS FOR MAIN STUDY
+# ============================================================================
+
+implications:
+  if_concat_superior:
+    - "Validates factorial study used optimal conditioning"
+    - "Keep concat in all best_config.yaml files"
+    - "Report: 'Concat conditioning outperformed FiLM'"
+
+  if_film_superior:
+    - "Factorial study suboptimal - need to note this limitation"
+    - "Update all best_config.yaml files to use FiLM"
+    - "Consider re-running critical experiments with FiLM"
+    - "Report: 'Post-hoc analysis revealed FiLM conditioning superior'"
+
+  if_interaction:
+    - "Optimal conditioning is loss-dependent"
+    - "Update each best_config.yaml with loss-specific conditioning"
+    - "Report novel finding: 'Conditioning × Loss interaction'"
+    - "Contributes to understanding of GFlowNet architecture design"
+
+  if_no_difference:
+    - "Factorial results remain valid"
+    - "Conditioning choice is not critical"
+    - "Report: 'Conditioning mechanism had negligible effect'"
+
+  for_best_config:
+    decision_tree: |
+      IF concat significantly better (p < 0.05, effect size > 0.1):
+        → Use concat in best_config.yaml files
+      ELIF film significantly better (p < 0.05, effect size > 0.1):
+        → Use film in best_config.yaml files
+      ELIF significant interaction exists:
+        → Use optimal conditioning for each loss function:
+          - best_config uses SubTB+Entropy, so check concat_subtb_entropy vs film_subtb_entropy
+      ELSE:
+        → Keep concat (simpler implementation)
+
+# ============================================================================
+# EXPERIMENTAL PROTOCOL
+# ============================================================================
+
+protocol:
+  execution:
+    - "Run all 18 experiments with same random seeds for fair comparison"
+    - "Use 5 parallel jobs to complete in ~36 minutes"
+    - "Monitor for mode collapse (MCE=0) - if occurs, investigate immediately"
+
+  script: |
+    python3 scripts/factorials/hypergrid/run_factorial_hypergrid.py \
+        --config configs/validation/conditioning_loss_interaction.yaml \
+        --output_dir results/validation/conditioning_loss \
+        --num_parallel 5
+
+  post_processing:
+    - "Check for mode collapse in any conditions"
+    - "Run two-way ANOVA on QDS, MCE, hypervolume"
+    - "Create interaction plots"
+    - "Calculate effect sizes (Cohen's d) for pairwise comparisons"
+    - "Generate decision for best_config.yaml files"
+
+  reporting:
+    - "Include in thesis/paper as validation of factorial design choices"
+    - "Present interaction plot as key figure"
+    - "Report statistical tests and effect sizes"
+    - "Make clear recommendation for conditioning mechanism"

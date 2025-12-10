@@ -1,0 +1,120 @@
+# ============================================================================
+# TEST CONFIG: Temperature × Off-Policy Interaction (Quick Test)
+# ============================================================================
+# Quick test version with reduced iterations and seeds for faster validation
+# ============================================================================
+
+experiment_name: "temp_offpolicy_test"
+study_type: "validation"
+
+fixed:
+  # Task: HyperGrid 32×32
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model architecture (LARGE)
+  hidden_dim: 128
+  num_layers: 4
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training parameters (REDUCED for quick test)
+  max_iterations: 500  # Reduced from 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 100  # More frequent for quick test
+  eval_samples: 500  # Reduced from 1000
+  final_eval_samples: 1000  # Reduced from 10000
+
+  # Seeds (REDUCED for quick test)
+  num_seeds: 2  # Reduced from 3
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN: Temperature × Off-Policy
+# ============================================================================
+
+factors:
+  temperature:
+    description: "Sampling temperature for exploration control"
+    levels:
+      temp1:
+        temperature: 1.0
+        label: "τ=1.0 (moderate)"
+      temp2:
+        temperature: 2.0
+        label: "τ=2.0 (high)"
+      temp5:
+        temperature: 5.0
+        label: "τ=5.0 (very high)"
+
+  offpolicy:
+    description: "Off-policy exploration ratio"
+    levels:
+      off0:
+        off_policy_ratio: 0.0
+        label: "On-policy (ε=0.0)"
+      off10:
+        off_policy_ratio: 0.1
+        label: "Off-policy (ε=0.1)"
+
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (6 conditions × 2 seeds = 12 experiments)
+# ============================================================================
+
+conditions:
+  # Temperature = 1.0
+  - name: "temp1_off0"
+    temperature: "temp1"
+    offpolicy: "off0"
+    loss: "subtb_entropy"
+
+  - name: "temp1_off10"
+    temperature: "temp1"
+    offpolicy: "off10"
+    loss: "subtb_entropy"
+
+  # Temperature = 2.0
+  - name: "temp2_off0"
+    temperature: "temp2"
+    offpolicy: "off0"
+    loss: "subtb_entropy"
+
+  - name: "temp2_off10"
+    temperature: "temp2"
+    offpolicy: "off10"
+    loss: "subtb_entropy"
+
+  # Temperature = 5.0
+  - name: "temp5_off0"
+    temperature: "temp5"
+    offpolicy: "off0"
+    loss: "subtb_entropy"
+
+  - name: "temp5_off10"
+    temperature: "temp5"
+    offpolicy: "off10"
+    loss: "subtb_entropy"

@@ -100,7 +100,7 @@ class MoleculeFragments(MultiObjectiveEnvironment):
 
         # Setup objective properties
         if objective_properties is None:
-            objective_properties = ['qed', 'sa'] if self._rdkit_available else ['length', 'diversity']
+            objective_properties = ['qed', 'sa', 'logp'] if self._rdkit_available else ['length', 'diversity']
 
         self.objective_properties = objective_properties
         self._num_objectives = len(objective_properties)

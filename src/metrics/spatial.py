@@ -102,57 +102,6 @@ def mode_coverage_entropy(solutions_obj_space, eps='auto',min_samples=5):
     return mce, num_modes
 
 
-def pairwise_minimum_distance(objectives: np.ndarray, top_k: int = None) -> float:
-    """
-    Compute Pairwise Minimum Distance (PMD) for top-K solutions.
-    
-    PMD = min_{i≠j} d(x_i, x_j)
-    
-    Args:
-        objectives: Objective values, shape (N, num_objectives)
-        top_k: Number of top solutions to consider (None = all)
-    
-    Returns:
-        pmd: Minimum pairwise distance
-    """
-    from scipy.spatial.distance import pdist
-    
-    # FIXED: Convert PyTorch tensor to numpy if needed
-    if hasattr(objectives, 'cpu'):
-        objectives = objectives.cpu().numpy()
-    
-    # Select top-K non-dominated solutions if specified
-    if top_k is not None and top_k < len(objectives):
-        # Find non-dominated solutions
-        n = len(objectives)
-        is_dominated = np.zeros(n, dtype=bool)
-        for i in range(n):
-            for j in range(n):
-                # FIXED: objectives is now guaranteed to be numpy array
-                if i != j and np.all(objectives[j] <= objectives[i]) and np.any(objectives[j] < objectives[i]):
-                    is_dominated[i] = True
-                    break
-        
-        non_dominated = objectives[~is_dominated]
-        
-        if len(non_dominated) >= top_k:
-            objectives = non_dominated[:top_k]
-        else:
-            # Take all non-dominated + best dominated
-            dominated = objectives[is_dominated]
-            sums = np.sum(dominated, axis=1)
-            best_dominated = dominated[np.argsort(sums)[:top_k - len(non_dominated)]]
-            objectives = np.vstack([non_dominated, best_dominated])
-    
-    # Compute minimum pairwise distance
-    if len(objectives) < 2:
-        return 0.0
-    
-    distances = pdist(objectives, metric='euclidean')
-
-    return float(np.min(distances))
-
-
 def num_unique_solutions(objectives: np.ndarray, tolerance: float = 1e-9) -> int:
     """
     Count the number of unique solutions in objective space.
