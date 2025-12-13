@@ -43,6 +43,8 @@ def quality_diversity_score(objectives: np.ndarray,
         >>> print(f"QDS: {results['qds']:.4f}")
     """
     from scipy.spatial.distance import pdist
+    # FIXED 2025-12-12: Use proper hypervolume from traditional.py instead of broken _compute_hypervolume_2d
+    from src.metrics.traditional import hypervolume as compute_hypervolume
 
     if len(objectives) < 2:
         return {
@@ -54,7 +56,8 @@ def quality_diversity_score(objectives: np.ndarray,
         }
 
     # ===== 1. Compute Quality (Hypervolume) =====
-    hv = _compute_hypervolume_2d(objectives, reference_point)
+    # FIXED: Use traditional.py hypervolume which works correctly for 2D, 3D, and higher dimensions
+    hv = compute_hypervolume(objectives, reference_point)
 
     # ===== 2. Compute Diversity =====
     if diversity_metric == 'avg_distance':

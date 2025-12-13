@@ -1,0 +1,209 @@
+# ============================================================================
+# SEQUENCES IMPROVED BEST CONFIGURATION
+# ============================================================================
+# Based on comprehensive factorial analysis (135 experiments)
+#
+# Selected from: small_tb configuration from sequences_capacity_loss
+# Key improvements over original selection (medium_subtb_entropy):
+#   - Smaller model (64×2 vs 128×4): Much better HV, avoids overfitting
+#   - Simpler loss (TB vs SubTB+entropy): Better quality metrics
+#   - Implicit higher temp: TB naturally explores more
+#
+# Expected performance improvements:
+#   HV:  1.000 (+218% vs selected 0.314) ← Huge improvement!
+#   MCE: 0.550 (+12% vs selected 0.492)
+#   QDS: 0.603 (+1.7% vs selected 0.593)
+#
+# Alternative: For pure QDS, use veryhigh_subtb_entropy with τ=5.0
+# ============================================================================
+
+experiment_name: "sequences_improved_best"
+study_type: "validation"
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS
+# ============================================================================
+
+conditions:
+  - name: "small_tb"
+    loss: "tb"
+
+# ============================================================================
+# FIXED PARAMETERS
+# ============================================================================
+
+fixed:
+  # Environment
+  environment: "sequences"
+  seq_length: 20
+  temperature_seq: 37.0              # Celsius for RNA stability calculations
+  use_viennarna: true
+  objective_properties:
+    - "free_energy"
+    - "num_base_pairs"
+    - "inverse_length"
+
+  # Model Architecture (SMALL for better quality)
+  hidden_dim: 64                    # Smaller than original (128)
+  num_layers: 2                     # Fewer layers than original (4)
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference Sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+
+  # Sampling Strategy
+  sampling_strategy: "categorical"
+  # NOTE: No explicit temperature_sampling parameter for this config
+  # TB loss provides natural exploration
+
+  # Training
+  max_iterations: 20000              # Long due to large state space
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 1000
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN
+# ============================================================================
+
+factors:
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+        modifications: "none"
+        modifications_params: {}
+
+# ============================================================================
+# METRICS TO TRACK
+# ============================================================================
+
+metrics:
+  primary:
+    - hypervolume                    # Expected: 1.000+
+    - mode_coverage_entropy          # Expected: 0.550
+    - quality_diversity_score        # Expected: 0.603
+    - pareto_front_smoothness
+
+  secondary:
+    - trajectory_diversity_score
+    - preference_aligned_spread
+    - flow_concentration_index
+    - diversity_efficiency_ratio
+    - pairwise_minimum_distance
+    - replay_buffer_diversity
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+  minimum_performance:
+    hypervolume: 0.80
+    mce: 0.45
+    qds: 0.60
+    pfs: 0.30
+
+  stability:
+    description: "Low variance across seeds indicates stable configuration"
+    max_coefficient_of_variation: 0.20
+
+  statistical_significance:
+    description: "Performance must exceed original selection on all metrics"
+    alpha: 0.05
+
+# ============================================================================
+# VALIDATION EXPECTATIONS
+# ============================================================================
+
+validation:
+  purpose: "Validate improved config dramatically improves HV while maintaining QDS"
+
+  comparison_baseline:
+    description: "Compare against original selection (medium_subtb_entropy)"
+    expectation: "Improved config should achieve >2x HV improvement"
+
+  expected_performance:
+    qds_mean: '>0.600'
+    qds_std: <0.010
+    hypervolume_mean: '>0.900'
+    hypervolume_std: <0.150
+    mce_mean: '>0.50'
+    mce_std: <0.040
+    pfs_mean: <0.30
+    pfs_std: <0.050
+
+  hypotheses:
+    h1_hypervolume:
+      statement: "Improved config achieves HV > 0.900"
+      prediction: "HV ~1.000 (factorial best: 1.270)"
+      rationale: "Small model (64×2) avoids overfitting, achieves better Pareto quality"
+
+    h2_qds:
+      statement: "Improved config maintains high QDS > 0.600"
+      prediction: "QDS ~0.603"
+      rationale: "TB loss balances quality and diversity for RNA design"
+
+    h3_stability:
+      statement: "Small model provides stable performance across seeds"
+      prediction: "CV < 0.20 for all metrics"
+      rationale: "Simpler architecture generalizes better"
+
+# ============================================================================
+# ALTERNATIVE CONFIGURATION (For Maximum QDS)
+# ============================================================================
+
+# If prioritizing pure QDS over HV, use veryhigh_subtb_entropy instead:
+#
+# alternative:
+#   name: "veryhigh_subtb_entropy"
+#   hidden_dim: 128
+#   num_layers: 4
+#   temperature_sampling: 5.0
+#   loss_function: "subtrajectory_balance"
+#   regularization: "entropy"
+#   expected_qds: 0.603
+#   expected_hv: 0.491
+#
+# Trade-off: +0% QDS, -51% HV vs small_tb
+
+# ============================================================================
+# RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5
+  estimated_time_per_run: "30 minutes"
+  total_time_parallel: "30 minutes"
+  total_time_sequential: "2.5 hours"
+  storage_per_run: "~30 MB"
+  total_storage: "~150 MB"
+
+# Seeds to use
+seeds:
+  - 42
+  - 153
+  - 264
+  - 375
+  - 486
+
+timestamp: '2025-12-11T00:00:00'

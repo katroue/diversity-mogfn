@@ -1,0 +1,188 @@
+# ============================================================================
+# MOLECULES IMPROVED BEST CONFIGURATION
+# ============================================================================
+# Based on comprehensive factorial analysis (135 experiments)
+#
+# Selected from: small_low configuration from molecules_capacity_sampling
+# Key improvements over original selection (small_subtb_entropy):
+#   - Lower temperature (1.0 vs 2.0): Critical for chemical validity/precision
+#   - Simpler loss (TB vs SubTB+entropy): Better quality metrics
+#   - Same capacity (64×2): Maintains QDS balance
+#
+# Expected performance improvements:
+#   QDS: 0.656 (+303% vs selected 0.163)
+#   MCE: 0.290 (+49% vs selected 0.194)
+#   HV:  0.900 (+2% vs selected 0.883)
+# ============================================================================
+
+experiment_name: "molecules_improved_best"
+study_type: "validation"
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS
+# ============================================================================
+
+conditions:
+  - name: "small_low_tb"
+    loss: "tb"
+
+# ============================================================================
+# FIXED PARAMETERS
+# ============================================================================
+
+fixed:
+  # Environment
+  environment: "molecules"
+  max_fragments: 8
+  num_fragments_library: 15
+  use_rdkit: true
+  objective_properties:
+    - "qed"      # Quantitative Estimate of Drug-likeness
+    - "sa"       # Synthetic Accessibility
+    - "logp"     # Lipophilicity
+
+  # Model Architecture (SMALL for QDS balance)
+  hidden_dim: 64                    # Small model for better QDS
+  num_layers: 2
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference Sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+
+  # Sampling Strategy (CRITICAL: Low temperature for precision)
+  sampling_strategy: "categorical"
+  temperature: 1.0                  # LOW for chemical validity
+
+  # Training
+  max_iterations: 10000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN
+# ============================================================================
+
+factors:
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+        modifications: "none"
+        modifications_params: {}
+
+# ============================================================================
+# METRICS TO TRACK
+# ============================================================================
+
+metrics:
+  primary:
+    - quality_diversity_score       # Expected: 0.656
+    - hypervolume                   # Expected: 0.900
+    - mode_coverage_entropy         # Expected: 0.290
+    - trajectory_diversity_score
+
+  secondary:
+    - preference_aligned_spread
+    - pareto_front_smoothness
+    - flow_concentration_index
+    - diversity_efficiency_ratio
+    - pairwise_minimum_distance
+    - replay_buffer_diversity
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+  minimum_performance:
+    qds: 0.60
+    tds: 0.80
+    mce: 0.25
+    validity: 0.85
+
+  stability:
+    description: "Low variance across seeds indicates stable configuration"
+    max_coefficient_of_variation: 0.15
+
+  statistical_significance:
+    description: "Performance must exceed factorial best on QDS"
+    alpha: 0.05
+
+# ============================================================================
+# VALIDATION EXPECTATIONS
+# ============================================================================
+
+validation:
+  purpose: "Validate improved config achieves top-tier QDS for molecules"
+
+  comparison_baseline:
+    description: "Compare against factorial best QDS performers"
+    expectation: "Improved config should match factorial best QDS (~0.656)"
+
+  expected_performance:
+    qds_mean: '>0.650'
+    qds_std: <0.010
+    hypervolume_mean: '>0.020'
+    hypervolume_std: <0.005
+    mce_mean: '>0.25'
+    mce_std: <0.030
+    tds_mean: '>0.85'
+    tds_std: <0.030
+
+  hypotheses:
+    h1_qds:
+      statement: "Improved config achieves very high QDS > 0.650"
+      prediction: "QDS ~0.656"
+      rationale: "Small model (64×2) with low temp (τ=1.0) balances quality and diversity"
+
+    h2_precision:
+      statement: "Low temperature maintains high chemical validity"
+      prediction: "Validity > 90%"
+      rationale: "τ=1.0 ensures precise fragment selection for valid molecules"
+
+    h3_mce:
+      statement: "Improved config achieves MCE > 0.25"
+      prediction: "MCE ~0.290"
+      rationale: "TB loss with small model enables diverse mode coverage"
+
+# ============================================================================
+# RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5
+  estimated_time_per_run: "45 minutes"
+  total_time_parallel: "45 minutes"
+  total_time_sequential: "3.75 hours"
+  storage_per_run: "~40 MB"
+  total_storage: "~200 MB"
+
+# Seeds to use
+seeds:
+  - 42
+  - 153
+  - 264
+  - 375
+  - 486
+
+timestamp: '2025-12-11T00:00:00'

@@ -74,10 +74,13 @@ fixed:
 # ============================================================================
 
 factors:
-  # Factor A: Temperature (FIXED at 5.0)
+  # Factor A: Temperature (FIXED at 2.0)
   temperature:
     description: "Sampling temperature for exploration control"
     levels:
+      temp2:
+        temperature: 2.0
+        label: "τ=2.0 (moderate)"
       temp5:
         temperature: 5.0
         label: "τ=5.0 (very high)"
@@ -112,14 +115,14 @@ factors:
 # ============================================================================
 
 conditions:
-  # Temperature = 5.0 (ONLY testing high temp)
-  - name: "temp5_off0"
-    temperature: "temp5"
+  # Temperature = 2.0 (ONLY testing moderate temp)
+  - name: "temp2_off0"
+    temperature: "temp2"
     offpolicy: "off0"
     loss: "subtb_entropy"
 
-  - name: "temp5_off10"
-    temperature: "temp5"
+  - name: "temp2_off10"
+    temperature: "temp2"
     offpolicy: "off10"
     loss: "subtb_entropy"
 

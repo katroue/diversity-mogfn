@@ -1,0 +1,182 @@
+# ============================================================================
+# HYPERGRID IMPROVED BEST CONFIGURATION
+# ============================================================================
+# Based on comprehensive factorial analysis (135 experiments)
+#
+# Selected from: small_veryhigh configuration from capacity_sampling factorial
+# Key improvements over original selection (large_subtb_entropy):
+#   - Smaller model (32×2 vs 128×4): Prevents mode collapse, better MCE
+#   - Higher temperature (5.0 vs 2.0): Critical for exploration
+#   - Simpler loss (TB vs SubTB+entropy): Better quality metrics
+#
+# Expected performance improvements:
+#   QDS: 0.665 (+28% vs selected 0.518)
+#   MCE: 0.620 (+1007% vs selected 0.056)
+#   HV:  1.210 (matches selected)
+# ============================================================================
+
+experiment_name: "hypergrid_improved_best"
+study_type: "validation"
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS
+# ============================================================================
+
+conditions:
+  - name: "small_veryhigh_tb"
+    loss: "tb"
+
+# ============================================================================
+# FIXED PARAMETERS
+# ============================================================================
+
+fixed:
+  # Environment
+  task: "hypergrid"
+  grid_size: [32, 32]
+
+  # Model Architecture (SMALL for better QDS)
+  hidden_dim: 32                    # Small to prevent mode collapse
+  num_layers: 2
+  conditioning: "concat"
+  activation: "relu"
+
+  # Preference Sampling
+  preference_distribution: "dirichlet"
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+
+  # Sampling Strategy (CRITICAL: High temperature)
+  sampling_strategy: "categorical"
+  temperature: 5.0                  # Very high for exploration
+
+  # Training
+  max_iterations: 4000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN
+# ============================================================================
+
+factors:
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
+        loss_params:
+          log_reward_clip: 10.0
+        regularization: "none"
+        regularization_params: {}
+        modifications: "none"
+        modifications_params: {}
+
+# ============================================================================
+# METRICS TO TRACK
+# ============================================================================
+
+metrics:
+  primary:
+    - quality_diversity_score       # Expected: 0.665
+    - hypervolume                   # Expected: 1.210
+    - mode_coverage_entropy         # Expected: 0.620
+    - pareto_front_smoothness
+
+  secondary:
+    - trajectory_diversity_score
+    - preference_aligned_spread
+    - flow_concentration_index
+    - diversity_efficiency_ratio
+    - pairwise_minimum_distance
+    - replay_buffer_diversity
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+  minimum_performance:
+    hypervolume: 1.20
+    mce: 0.55
+    qds: 0.65
+    tds: 0.50
+
+  stability:
+    description: "Low variance across seeds indicates stable configuration"
+    max_coefficient_of_variation: 0.15
+
+  statistical_significance:
+    description: "Performance must exceed factorial best on key metrics"
+    alpha: 0.05
+
+# ============================================================================
+# VALIDATION EXPECTATIONS
+# ============================================================================
+
+validation:
+  purpose: "Validate improved config exceeds factorial best performance"
+
+  comparison_baseline:
+    description: "Compare against factorial best performers"
+    expectation: "Improved config should match or exceed factorial best"
+
+  expected_performance:
+    qds_mean: '>0.660'
+    qds_std: <0.010
+    hypervolume_mean: '>1.200'
+    hypervolume_std: <0.010
+    mce_mean: '>0.600'
+    mce_std: <0.030
+    tds_mean: '>0.500'
+    tds_std: <0.050
+
+  hypotheses:
+    h1_qds:
+      statement: "Improved config achieves QDS > 0.660"
+      prediction: "QDS ~0.665"
+      rationale: "Small model (32×2) with very high temp (τ=5.0) optimizes quality-diversity balance"
+
+    h2_mce:
+      statement: "Improved config achieves MCE > 0.600"
+      prediction: "MCE ~0.620"
+      rationale: "Small model prevents mode collapse; high temp enables broad exploration"
+
+    h3_hv:
+      statement: "Improved config maintains HV = 1.210"
+      prediction: "HV = 1.210"
+      rationale: "TB loss achieves optimal Pareto front quality"
+
+# ============================================================================
+# RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5
+  estimated_time_per_run: "20 minutes"
+  total_time_parallel: "20 minutes"
+  total_time_sequential: "1.7 hours"
+  storage_per_run: "~20 MB"
+  total_storage: "~100 MB"
+
+# Seeds to use
+seeds:
+  - 42
+  - 153
+  - 264
+  - 375
+  - 486
+
+timestamp: '2025-12-11T00:00:00'

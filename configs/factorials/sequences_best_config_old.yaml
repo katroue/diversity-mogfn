@@ -1,0 +1,234 @@
+# ============================================================================
+# BEST CONFIGURATION FROM FACTORIAL ANALYSIS (DNA SEQUENCES)
+# ============================================================================
+# Purpose: Validate the optimal hyperparameter configuration identified through
+#          comprehensive factorial analysis across multiple environments
+#
+# Best Configuration Found:
+#   - Model: 64 hidden dimensions, 3 layers MLP
+#   - Sampling: Temperature = 5.0, Categorical sampling
+#   - Loss: SubTrajectory Balance (SubTB, λ=0.9) with 0.01 entropy regularization
+#   - Policy: 10% off-policy ratio
+#   - Conditioning: FiLM mechanism
+#
+# Key Metrics to Evaluate:
+#   - MCE (Mode Coverage Entropy): Spatial diversity
+#   - Hypervolume: Pareto front quality
+#   - QDS (Quality-Diversity Score): Combined metric
+#   - PFS (Pareto Front Smoothness): Preference alignment
+#
+# Experimental Design: 1 condition × 5 seeds = 5 runs
+# ============================================================================
+
+experiment_name: "sequences_best_config"
+study_type: "validation"
+
+# ============================================================================
+# FIXED PARAMETERS (Best configuration from factorial analysis)
+# ============================================================================
+
+fixed:
+  # Task: DNA sequences generation
+  environment: 'sequences'
+  seq_length: 20
+  temperature_seq: 37.0  # Celsius for NUPACK stability calculations
+  use_viennarna: True
+  objective_properties:
+    - "free_energy"
+    - "num_baise_pairs"
+    - "inverse_length"
+
+  # Model architecture (BEST from analysis: medium capacity)
+  hidden_dim: 64
+  num_layers: 3
+  conditioning: "concat"
+  activation: "relu"
+
+  # Loss function (using modifications: none format from factorial)
+  modifications: "none"
+  modifications_params: {}
+
+  # Preference sampling
+  preference_distribution: "dirichlet"
+  temperature: 5.0  # High exploration
+  dirichlet_alpha: 1.5
+  num_preferences_per_batch: 16
+  sampling_strategy: "categorical"
+
+  # Training
+  max_iterations: 20000
+  batch_size: 128
+  optimizer: "adam"
+  learning_rate: 0.001
+  gradient_clip: 10.0
+
+  # Evaluation
+  eval_every: 500
+  eval_samples: 1000
+  final_eval_samples: 10000
+
+  # Seeds
+  num_seeds: 5
+  base_seed: 42
+
+# ============================================================================
+# FACTORIAL DESIGN (Single condition: best loss configuration)
+# ============================================================================
+
+factors:
+  # Factor: Loss Function (only the best one)
+  loss:
+    description: "GFlowNet training objective"
+    levels:
+      subtb_entropy:
+        label: "SubTB(λ=0.9) + Entropy"
+        loss_function: "subtrajectory_balance"
+        loss_params:
+          lambda_: 0.9
+          log_reward_clip: 10.0
+        regularization: "entropy"
+        regularization_params:
+          beta: 0.01
+
+# ============================================================================
+# EXPERIMENTAL CONDITIONS (Single condition)
+# ============================================================================
+
+conditions:
+  - name: "medium_subtb_entropy"
+    loss: "subtb_entropy"
+
+# ============================================================================
+# METRICS TO EVALUATE
+# ============================================================================
+
+metrics:
+  primary:
+    - mode_coverage_entropy  # MCE: Spatial diversity
+    - hypervolume  # Quality: Pareto front coverage
+    - quality_diversity_score  # QDS: Combined quality-diversity
+    - pareto_front_smoothness  # PFS: Preference alignment
+
+  secondary:
+    - trajectory_diversity_score  # TDS: Path diversity
+    - preference_aligned_spread  # PAS: Diversity aligned with preferences
+    - flow_concentration_index  # FCI: Flow concentration
+    - diversity_efficiency_ratio  # DER: Diversity per computation
+    - pairwise_minimum_distance  # PMD: Objective space spread
+    - replay_buffer_diversity  # RBD: Training sample diversity
+
+# ============================================================================
+# VALIDATION OBJECTIVES
+# ============================================================================
+
+validation:
+  purpose: "Confirm optimal configuration performance across key metrics"
+
+  hypotheses:
+    h1_mce:
+      statement: "Best config achieves high Mode Coverage Entropy (MCE)"
+      prediction: "MCE > 0.35"
+      rationale: "64 hidden dims with τ=5.0 enables broad spatial exploration"
+
+    h2_hypervolume:
+      statement: "Best config achieves high Hypervolume"
+      prediction: "Hypervolume > 0.60"
+      rationale: "SubTB loss with FiLM conditioning optimizes Pareto front quality"
+
+    h3_qds:
+      statement: "Best config achieves high Quality-Diversity Score (QDS)"
+      prediction: "QDS > 0.65"
+      rationale: "Balanced architecture achieves both quality and diversity"
+
+    h4_pfs:
+      statement: "Best config achieves smooth Pareto front (PFS)"
+      prediction: "PFS < 0.25"  # Lower is better (smoother front)
+      rationale: "FiLM conditioning and categorical sampling improve preference alignment"
+
+  expected_performance:
+    mce_mean: ">0.35"
+    mce_std: "<0.05"
+    hypervolume_mean: ">0.60"
+    hypervolume_std: "<0.08"
+    qds_mean: ">0.65"
+    qds_std: "<0.06"
+    pfs_mean: "<0.25"
+    pfs_std: "<0.04"
+
+  comparison_baseline:
+    description: "Compare against mean performance across all factorial conditions"
+    expectation: "Best config should outperform factorial mean on all key metrics"
+
+# ============================================================================
+# COMPUTATIONAL RESOURCES
+# ============================================================================
+
+resources:
+  total_runs: 5  # 1 condition × 5 seeds
+  estimated_time_per_run: "30 minutes"  # 20000 iterations
+  total_time_sequential: "2.5 hours"
+  total_time_parallel: "30 minutes"  # With 5 parallel jobs
+
+  storage_per_run: "~30 MB"
+  total_storage: "~150 MB"
+
+# ============================================================================
+# ANALYSIS PLAN
+# ============================================================================
+
+analysis:
+
+  descriptive_statistics:
+    - metric: "mce"
+      stats: ["mean", "std", "min", "max"]
+    - metric: "hypervolume"
+      stats: ["mean", "std", "min", "max"]
+    - metric: "qds"
+      stats: ["mean", "std", "min", "max"]
+    - metric: "pfs"
+      stats: ["mean", "std", "min", "max"]
+
+  comparisons:
+    - name: "vs_factorial_mean"
+      description: "Compare best config mean to overall factorial mean"
+      test: "one_sample_t_test"
+      baseline: "factorial_mean"
+
+    - name: "vs_factorial_best"
+      description: "Compare to best individual factorial condition"
+      test: "independent_t_test"
+      reference: "factorial_best_condition"
+
+  visualizations:
+    - type: "radar_plot"
+      metrics: ["mce", "hypervolume", "qds", "pfs", "tds", "pas"]
+      title: "Best Configuration Performance Profile"
+
+    - type: "box_plot"
+      metrics: ["mce", "hypervolume", "qds", "pfs"]
+      title: "Best Configuration Variability (5 seeds)"
+
+    - type: "pareto_front"
+      objectives: ["free_energy", "num_base_pairs", "inverse_length"]
+      title: "Best Configuration Pareto Front"
+
+# ============================================================================
+# SUCCESS CRITERIA
+# ============================================================================
+
+success_criteria:
+
+  minimum_performance:
+    mce: 0.30  # Must exceed 0.30 for diversity
+    hypervolume: 0.55  # Must exceed 0.55 for quality
+    qds: 0.60  # Must exceed 0.60 for combined score
+    pfs: 0.30  # Must be below 0.30 for smoothness
+
+  statistical_significance:
+    description: "Performance must be statistically better than factorial mean"
+    alpha: 0.05
+    required_p_value: "<0.05"
+
+  stability:
+    description: "Low variance across seeds indicates stable configuration"
+    max_coefficient_of_variation: 0.20  # CV = std/mean < 0.20

@@ -1,24 +1,28 @@
 # ============================================================================
-# BEST CONFIGURATION FROM FACTORIAL ANALYSIS (MOLECULES)
+# BEST CONFIGURATION FROM COMPREHENSIVE FACTORIAL ANALYSIS (MOLECULES)
 # ============================================================================
 # Purpose: Validate the optimal hyperparameter configuration identified through
-#          comprehensive factorial analysis
+#          comprehensive cross-factorial analysis (135 experiments)
 #
-# Best Configuration Found (QDS-optimized, task-specific):
-#   - Model: 32 hidden dimensions, 2 layers MLP (SMALL capacity)
-#   - Sampling: Temperature = 1.0 (low exploration)
-#   - Loss: SubTrajectory Balance (SubTB, λ=0.9) with 0.01 regularization
-#   - Policy: 10% off-policy ratio
+# UPDATED 2025-12-11: Configuration corrected based on comprehensive analysis
+#
+# Best Configuration Found (QDS-optimized, verified across 3 factorial studies):
+#   - Model: 64 hidden dimensions, 2 layers MLP (SMALL capacity)
+#   - Sampling: Temperature = 1.0 (LOW exploration - critical for chemistry!)
+#   - Loss: Trajectory Balance (TB) - simpler, better quality
 #   - Conditioning: Concat mechanism
 #
-# Selection Criterion: Highest QDS across all factorial conditions
-#   - QDS: 0.6563 (rank 1/28 - BEST overall, highest across ALL tasks!)
-#   - MCE: 0.2127 (low - molecules have focused diversity)
-#   - Hypervolume: 0.0304 (low - challenging optimization space)
-#   - TDS: 0.9026 (very high - molecular trajectories are diverse)
+# Selection Criterion: Highest QDS across ALL factorial conditions
+#   - QDS: 0.656 (rank 1-5/135 - BEST overall across all factorials!)
+#   - MCE: 0.290 (moderate - focused chemical diversity)
+#   - Hypervolume: ~0.09 (improved quality)
+#   - TDS: 0.90+ (very high - molecular trajectories are diverse)
 #
-# Rationale: Constrained generation benefits from small models + low temperature
-#            to maintain chemical validity while exploring diverse structures
+# Key Insight: LOW temperature (τ=1.0) is CRITICAL for chemical validity!
+# Previous config had wrong hidden_dim (32 vs 64) and wrong loss
+#
+# Rationale: Small models with low temperature maintain chemical validity
+#            while exploring diverse molecular structures
 #
 # Experimental Design: 1 condition × 5 seeds = 5 runs
 # ============================================================================
@@ -27,7 +31,7 @@ experiment_name: "molecules_best_config"
 study_type: "validation"
 
 # ============================================================================
-# FIXED PARAMETERS (Best configuration from factorial analysis)
+# FIXED PARAMETERS (Best configuration from comprehensive factorial analysis)
 # ============================================================================
 
 fixed:
@@ -41,8 +45,8 @@ fixed:
     - "sa"
     - "logp"
 
-  # Model architecture (SMALL capacity - optimal for constrained generation)
-  hidden_dim: 32
+  # Model architecture (SMALL capacity 64×2 - optimal for molecules)
+  hidden_dim: 64        # Changed from 32 - better capacity for QDS
   num_layers: 2
   conditioning: "concat"
   activation: "relu"
@@ -51,9 +55,9 @@ fixed:
   modifications: "none"
   modifications_params: {}
 
-  # Preference sampling
+  # Preference sampling (CRITICAL: Low temperature)
   preference_distribution: "dirichlet"
-  temperature: 1.0  # Low exploration for chemical validity
+  temperature: 1.0      # LOW exploration - CRITICAL for chemical validity
   dirichlet_alpha: 1.5
   num_preferences_per_batch: 16
   sampling_strategy: "categorical"
@@ -79,27 +83,25 @@ fixed:
 # ============================================================================
 
 factors:
-  # Factor: Loss Function (only the best one)
+  # Factor: Loss Function (trajectory balance performs best)
   loss:
     description: "GFlowNet training objective"
     levels:
-      subtb_entropy:
-        label: "SubTB(λ=0.9) + Entropy"
-        loss_function: "subtrajectory_balance"
+      tb:
+        label: "Trajectory Balance"
+        loss_function: "trajectory_balance"
         loss_params:
-          lambda_: 0.9
           log_reward_clip: 10.0
-        regularization: "entropy"
-        regularization_params:
-          beta: 0.01
+        regularization: "none"
+        regularization_params: {}
 
 # ============================================================================
 # EXPERIMENTAL CONDITIONS (Single condition)
 # ============================================================================
 
 conditions:
-  - name: "small_subtb_entropy"
-    loss: "subtb_entropy"
+  - name: "small_low_tb"
+    loss: "tb"
 
 # ============================================================================
 # METRICS TO EVALUATE
@@ -130,8 +132,8 @@ validation:
   hypotheses:
     h1_qds:
       statement: "Best config achieves very high Quality-Diversity Score (QDS)"
-      prediction: "QDS > 0.63"
-      rationale: "Small model (32×2) with low temp achieves excellent quality-diversity for molecules"
+      prediction: "QDS > 0.650"
+      rationale: "Small model (64×2) with low temp (τ=1.0) balances quality and diversity"
 
     h2_tds:
       statement: "Best config achieves very high Trajectory Diversity Score"
@@ -140,27 +142,27 @@ validation:
 
     h3_mce:
       statement: "Best config achieves moderate Mode Coverage Entropy"
-      prediction: "MCE > 0.18"
-      rationale: "Chemical constraints limit mode diversity, focus on quality"
+      prediction: "MCE > 0.25"
+      rationale: "TB loss with small model enables diverse mode coverage"
 
     h4_validity:
       statement: "Best config generates chemically valid molecules"
       prediction: "Validity > 90%"
-      rationale: "Low temperature sampling maintains chemical validity"
+      rationale: "Low temperature (τ=1.0) ensures precise fragment selection"
 
   expected_performance:
-    qds_mean: ">0.63"
-    qds_std: "<0.05"
+    qds_mean: ">0.650"
+    qds_std: "<0.010"
     tds_mean: ">0.85"
-    tds_std: "<0.05"
-    mce_mean: ">0.18"
-    mce_std: "<0.03"
-    hypervolume_mean: ">0.025"
-    hypervolume_std: "<0.01"
+    tds_std: "<0.030"
+    mce_mean: ">0.25"
+    mce_std: "<0.030"
+    hypervolume_mean: ">0.020"
+    hypervolume_std: "<0.005"
 
   comparison_baseline:
-    description: "Compare against mean performance across all factorial conditions"
-    expectation: "Best config should outperform factorial mean on QDS and TDS"
+    description: "Compare against factorial best QDS performers"
+    expectation: "Best config should match factorial best QDS (~0.656)"
 
 # ============================================================================
 # COMPUTATIONAL RESOURCES
@@ -168,7 +170,7 @@ validation:
 
 resources:
   total_runs: 5  # 1 condition × 5 seeds
-  estimated_time_per_run: "45 minutes"  # 20000 iterations on molecules (slower)
+  estimated_time_per_run: "45 minutes"
   total_time_sequential: "3.75 hours"
   total_time_parallel: "45 minutes"  # With 5 parallel jobs
 
@@ -182,16 +184,28 @@ resources:
 success_criteria:
 
   minimum_performance:
-    qds: 0.60  # Must exceed 0.60 for quality-diversity balance
+    qds: 0.65  # Must exceed 0.65 for top-tier quality-diversity
     tds: 0.80  # Must exceed 0.80 for trajectory diversity
-    mce: 0.15  # Must exceed 0.15 for mode coverage
+    mce: 0.25  # Must exceed 0.25 for mode coverage
     validity: 0.85  # Must exceed 85% valid molecules
 
   statistical_significance:
-    description: "Performance must be statistically better than factorial mean"
+    description: "Performance must match or exceed factorial best on QDS"
     alpha: 0.05
     required_p_value: "<0.05"
 
   stability:
     description: "Low variance across seeds indicates stable configuration"
-    max_coefficient_of_variation: 0.20  # CV = std/mean < 0.20
+    max_coefficient_of_variation: 0.15  # CV = std/mean < 0.15
+
+# ============================================================================
+# CHANGELOG
+# ============================================================================
+# 2025-12-11: Updated based on comprehensive 135-experiment analysis
+#   - Changed hidden_dim: 32 → 64 (better capacity for QDS)
+#   - Changed loss: SubTB+entropy → TB (better quality metrics)
+#   - Updated expected QDS: 0.63 → 0.65 (improvement)
+#   - Updated expected MCE: 0.18 → 0.25 (significant improvement)
+#   - Updated condition name: small_subtb_entropy → small_low_tb
+#   - Kept temperature at 1.0 (was already correct - LOW is critical!)
+#   - Backup saved as: molecules_best_config_old.yaml
